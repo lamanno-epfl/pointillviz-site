@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PointillViz · the spatial omics workbench</title>
+  <meta name="description" content="PointillViz is an interactive workbench for spatial omics that runs in the browser, from a single tissue section to a cohort atlas of more than ten million cells.">
+  <meta name="theme-color" content="#0A0C18">
+  <link rel="canonical" href="https://pointillviz.com/">
+
+  <!-- What a link to the site shows when it is shared in chat apps and social media. -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pointillviz.com/">
+  <meta property="og:title" content="PointillViz · the spatial omics workbench">
+  <meta property="og:description" content="Visualize, explore and analyze millions of cells, molecules and modalities live in the browser.">
+  <meta property="og:image" content="https://pointillviz.com/media/social-card.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Codystar&family=DM+Sans:opsz,wght@9..40,400..600&family=JetBrains+Mono:wght@500&display=swap">
+
+  <!-- Colours and type are the PointillViz app's own: ink background, cream text,
+       phosphor accent; Codystar for the wordmark, DM Sans for text, JetBrains Mono for labels. -->
+  <style>
+    :root {
+      --ink: #0A0C18;
+      --rule: rgba(239, 230, 210, 0.12);
+      --warm: #EFE6D2;
+      --warm-mute: rgba(239, 230, 210, 0.70);
+      --warm-faint: rgba(239, 230, 210, 0.48);
+      --phosphor: #6FE0BD;
+      --gutter: clamp(16px, 4vw, 40px);
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--ink);
+      color: var(--warm-mute);
+      font: 400 18px/1.6 'DM Sans', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    main, footer { max-width: 1040px; margin: 0 auto; padding-inline: var(--gutter); }
+    main { padding-block: clamp(48px, 10vw, 112px) 48px; }
+
+    .eyebrow {
+      display: flex; align-items: center; gap: 12px; margin: 0;
+      font: 500 12px/1.4 'JetBrains Mono', monospace;
+      letter-spacing: 0.32em; text-transform: uppercase; color: var(--warm-faint);
+    }
+    .eyebrow::before {
+      content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--phosphor); box-shadow: 0 0 10px var(--phosphor);
+    }
+    h1 {
+      margin: 20px 0 28px;
+      font: 400 clamp(42px, 13vw, 120px)/1 'Codystar', monospace;
+      letter-spacing: 0.06em; color: var(--warm);
+      text-shadow: 0 0 14px rgba(111, 224, 189, 0.50),
+                   0 0 40px rgba(111, 224, 189, 0.28),
+                   0 0 80px rgba(111, 224, 189, 0.14);
+    }
+    .lede { max-width: 34em; margin: 0; font-size: clamp(19px, 2.4vw, 24px); line-height: 1.45; }
+    .lede strong { color: var(--warm); font-weight: 600; }
+
+    figure { margin: clamp(40px, 7vw, 72px) 0 0; }
+    figure img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 10px; }
+    figcaption { margin-top: 12px; font-size: 14px; color: var(--warm-faint); }
+    .about { max-width: 40em; margin: 40px 0 0; }
+
+    footer {
+      padding-block: 0 40px;
+      font: 500 12px/1.6 'JetBrains Mono', monospace;
+      letter-spacing: 0.14em; text-transform: uppercase; color: var(--warm-faint);
+    }
+    /* The rule sits on the text, not the padded footer box, so it ends where the content does. */
+    footer > p { margin: 0; padding-top: 28px; border-top: 1px solid var(--rule); }
+    a { color: var(--phosphor); text-decoration: none; }
+    a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">The spatial omics workbench</p>
+    <h1>PointillViz</h1>
+    <p class="lede">Visualize, explore and analyze <strong>millions of cells, molecules and modalities</strong> live in the browser, extended by a community tool store and wired to <strong>AI agents through MCP</strong>.</p>
+
+    <figure>
+      <img src="media/atlas.webp" width="1760" height="1100" decoding="async"
+           alt="A multi-section atlas composed into one montage in the PointillViz viewer, coloured by cell type, with the section strip grouped by condition">
+      <figcaption>An atlas in PointillViz: many sections in one montage.</figcaption>
+    </figure>
+
+    <p class="about">PointillViz is an interactive workbench for spatial omics that runs in the browser. It opens anything from a single tissue section to a cohort atlas of more than ten million cells, shows every cell, every detected molecule and every measured modality, and puts live exploration instruments, more than thirty analyses, a community tool store and an AI agent that works through PointillViz's own MCP tools on the same screen.</p>
+  </main>
+
+  <footer>
+    <p>Developed in the <a href="https://www.epfl.ch/labs/lamanno-lab/">La Manno Lab, EPFL</a></p>
+  </footer>
+</body>
+</html>
