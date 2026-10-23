@@ -996,6 +996,17 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
   .wk-play { width: 40px; height: 40px; right: 10px; bottom: 10px; }
 }
 
+/* Images: the H&E alone, then the cells turned on over it. Two frames of one camera, the
+   cells' frame on top; home.js fades it in and out while the tile is on screen (section 3).
+   Without script, under reduced motion and in print it is the final still: the cells on. */
+.js .wk-he__cells { opacity: 0; }
+.wk-he--still .wk-he__cells { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .js .wk-he__cells { opacity: 1; }
+}
+/* a caption that wraps breaks into even lines, never one short word on the last */
+.wk-tile__text { text-wrap: balance; }
+
 /* phones and tablets: the lead and the wide picture full width, two small below; each
    picture keeps its own ratio and its caption starts right under it */
 .wk__panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1662,4 +1673,5 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
 @media print {
   .hx__stage, .sx, .wk-play, .hx__strip { display: none !important; }
   .hx { height: auto; }
+  .wk-he__cells { opacity: 1 !important; }
 }

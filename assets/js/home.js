@@ -779,6 +779,71 @@ function initClips() {
   reduceMQ.addEventListener('change', () => vids.forEach(update));
 }
 
+/* The Images tile: the H&E alone, then the cells turned on over it, held, and off again. Its
+ * two pictures are frames of one camera, so the fade equals the app ramping its cell opacity.
+ * It runs while the tile is on screen in the open tab, starts again from the image each time
+ * the tile comes back, and has a pause button like the clips. Under reduced motion it stays
+ * the final still (home.css) until the visitor presses play. */
+const HE_MS = 7200;
+const HE_KEYS = [
+  { opacity: 0, offset: 0 },
+  { opacity: 0, offset: 0.2, easing: EASE },                               // 1.4 s the image alone
+  { opacity: 1, offset: 0.3 },                                             // 0.7 s the cells turn on
+  { opacity: 1, offset: 0.875, easing: 'cubic-bezier(0.45, 0, 0.55, 1)' }, // 4.1 s held
+  { opacity: 0, offset: 1 },                                               // 0.9 s off again
+];
+function initImages() {
+  const box = $('.wk-he');
+  const top = box && $('.wk-he__cells', box);
+  if (!top) return;
+  if (!top.animate || !('IntersectionObserver' in window)) { box.classList.add('wk-he--still'); return; }
+  const imgs = $$('img', box);
+  const b = $('.wk-play', box);
+  const panel = box.closest('[role="tabpanel"]');
+  const s = { seen: false, fresh: true, user: null };
+  let anim = null;
+
+  const ready = () => imgs.every((i) => i.complete && i.naturalWidth > 0);
+  const label = () => {
+    if (!b) return;
+    const on = !!anim && anim.playState === 'running';
+    b.dataset.state = on ? 'playing' : 'paused';
+    b.setAttribute('aria-label', on ? 'Pause the animation' : 'Play the animation');
+  };
+  const update = () => {
+    const shown = !panel || !panel.hidden;
+    const auto = s.user === null ? !reduced() : s.user;
+    if (s.seen && shown && auto && !document.hidden && ready()) {
+      if (!anim) anim = top.animate(HE_KEYS, { duration: HE_MS, iterations: Infinity });
+      if (s.fresh) { anim.currentTime = 0; s.fresh = false; }
+      anim.play();
+    } else if (anim) {
+      if (!auto && s.user === null) { anim.cancel(); anim = null; s.fresh = true; }   // the final still
+      else anim.pause();
+    }
+    label();
+  };
+
+  new IntersectionObserver((entries) => entries.forEach((e) => {
+    if (!e.isIntersecting) s.fresh = true;               // out of sight: the next look starts at the image
+    s.seen = e.isIntersecting && e.intersectionRatio >= 0.35;
+    update();
+  }), { threshold: [0, 0.35] }).observe(box);
+  imgs.forEach((i) => i.addEventListener('load', update));
+  if (b) {
+    b.hidden = false;
+    b.addEventListener('click', () => {
+      s.user = !(anim && anim.playState === 'running');  // a press is the visitor's choice, kept
+      if (s.user) s.seen = true;
+      update();
+    });
+  }
+  document.addEventListener('visibilitychange', update);
+  document.addEventListener('pv:tabchange', () => requestAnimationFrame(update));
+  reduceMQ.addEventListener('change', update);
+  label();
+}
+
 /* ───────────────────────────── 4 · tools, assistant ─────────────────────── */
 
 function initTools() {
@@ -989,6 +1054,7 @@ function initAddress() {
 
 setTimeout(() => root.classList.add('hx-settled'), 700);
 initClips();
+initImages();
 initTabs();
 initTileKeys();
 initTools();

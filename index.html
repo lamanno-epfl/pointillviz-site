@@ -267,24 +267,25 @@
         <!-- Data -->
         <div class="pv-tabs__panel wk__panel" role="tabpanel" id="wk-p-data" aria-labelledby="wk-t-data" data-reveal="stagger">
           <figure class="wk-tile wk-tile--big">
-            <div class="wk-tile__media">
-              <img src="assets/media/data-images.webp" width="1040" height="800" loading="lazy" decoding="async" alt="Cell outlines coloured by cell type over the H&amp;E image of a Xenium 5K mouse colon section">
-              <video class="wk-vid" data-src="assets/media/data-images.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
-              <button class="wk-play" type="button" aria-label="Pause the clip" hidden></button>
+            <!-- the H&E alone, then the cells turned on over it: two frames of one camera (home.js, 3) -->
+            <div class="wk-tile__media wk-he">
+              <img src="assets/media/data-images-he-1040.webp" srcset="assets/media/data-images-he-1040.webp 1040w, assets/media/data-images-he-1600.webp 1600w" sizes="(min-width: 1000px) 49vw, 92vw" width="1040" height="800" loading="lazy" decoding="async" alt="The H&amp;E image of a mouse colon section, then each cell’s outline turned on over it, coloured by cell type">
+              <img class="wk-he__cells" src="assets/media/data-images-cells-1040.webp" srcset="assets/media/data-images-cells-1040.webp 1040w, assets/media/data-images-cells-1600.webp 1600w" sizes="(min-width: 1000px) 49vw, 92vw" width="1040" height="800" loading="lazy" decoding="async" alt="">
+              <button class="wk-play" type="button" aria-label="Pause the animation" hidden></button>
             </div>
-            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Images</strong> H&amp;E and stains, up to 8 channels.</span><span class="wk-tile__meta">Xenium 5K · mouse colon</span></figcaption>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Images</strong> H&amp;E and stains, under the cells.</span></figcaption>
           </figure>
           <figure class="wk-tile wk-tile--wide" style="--ar: 2.89">
-            <div class="wk-tile__media"><img src="assets/media/data-omics.webp" width="1036" height="358" loading="lazy" decoding="async" alt="Pde10a in RNA, ATAC, H3K27ac and H3K27me3 of a Spatial-Mux-seq mouse brain section, four maps side by side"></div>
-            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Multi-omics</strong> RNA, ATAC, histone marks and protein.</span><span class="wk-tile__meta">Spatial-Mux-seq · mouse brain · <span translate="no">Pde10a</span></span></figcaption>
+            <div class="wk-tile__media"><img src="assets/media/data-omics.webp" width="1036" height="358" loading="lazy" decoding="async" alt="One gene in RNA, ATAC, H3K27ac and H3K27me3 of a mouse brain section, four maps side by side"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Multi-omics</strong> RNA, ATAC, histone marks and protein.</span></figcaption>
           </figure>
           <figure class="wk-tile">
-            <div class="wk-tile__media"><img src="assets/media/data-cells.webp" width="620" height="383" loading="lazy" decoding="async" alt="One field of the mouse colon section drawn as points, each cell coloured by its type"></div>
-            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Cells</strong> From an <span translate="no">.h5ad</span>, cell types up to five nested levels.</span></figcaption>
+            <div class="wk-tile__media"><img src="assets/media/data-cells.webp" width="620" height="383" loading="lazy" decoding="async" alt="One field of a mouse colon section drawn as points, each cell coloured by its type"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Cells</strong> From an <span translate="no">.h5ad</span>, coloured by type.</span></figcaption>
           </figure>
           <figure class="wk-tile">
-            <div class="wk-tile__media"><img src="assets/media/data-molecules.webp" width="420" height="260" loading="lazy" decoding="async" alt="Transcripts of Pigr, Muc2 and Krt19 drawn as coloured spots over the crypts of the mouse colon section"><span class="wk-tile__note">Molecule positions simulated from the measured counts.</span></div>
-            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Molecules</strong> Every detected transcript, as a spot.</span><span class="wk-tile__meta wk-tile__meta--note">Molecule positions simulated from the measured counts.</span></figcaption>
+            <div class="wk-tile__media"><img src="assets/media/data-molecules.webp" width="760" height="469" loading="lazy" decoding="async" alt="Molecules of three genes as green, pink and cyan spots over the cells of a mouse tissue microarray"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Molecules</strong> Every detected transcript, as a spot.</span></figcaption>
           </figure>
         </div>
 
@@ -292,19 +293,19 @@
         <div class="pv-tabs__panel wk__panel" role="tabpanel" id="wk-p-views" aria-labelledby="wk-t-views" hidden>
           <figure class="wk-tile wk-tile--big">
             <div class="wk-tile__media">
-              <img src="assets/media/views-landscape.webp" width="900" height="692" loading="lazy" decoding="async" alt="The mouse colon section as an Expression Landscape: each cell raised as a column by its Lgals3 expression, coloured by cell type">
+              <img src="assets/media/views-landscape.webp" width="900" height="692" loading="lazy" decoding="async" alt="A mouse colon section as an Expression Landscape: each cell raised as a column by one gene’s expression, coloured by cell type">
               <video class="wk-vid" data-src="assets/media/views-landscape.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
               <button class="wk-play" type="button" aria-label="Pause the clip" hidden></button>
             </div>
-            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Expression Landscape</strong> Cells raised by a gene’s expression.</span><span class="wk-tile__meta">Xenium 5K · mouse colon · <span translate="no">Lgals3</span></span></figcaption>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Expression Landscape</strong> Cells raised by a gene’s expression.</span></figcaption>
           </figure>
           <figure class="wk-tile wk-tile--wide" style="--ar: 2.66">
-            <div class="wk-tile__media"><img src="assets/media/views-polygons.webp" width="900" height="338" loading="lazy" decoding="async" alt="One field of the colon section drawn as each cell’s segmentation outline, with the nuclei inside"></div>
-            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Polygons</strong> Points, or each cell’s outline.</span><span class="wk-tile__meta">Xenium 5K · mouse colon</span></figcaption>
+            <div class="wk-tile__media"><img src="assets/media/views-polygons.webp" width="900" height="338" loading="lazy" decoding="async" alt="One field of a colon section drawn as each cell’s segmentation outline, with the nuclei inside"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Polygons</strong> Points, or each cell’s outline.</span></figcaption>
           </figure>
           <figure class="wk-tile">
-            <div class="wk-tile__media"><img src="assets/media/views-genes.webp" width="620" height="383" loading="lazy" decoding="async" alt="The colon section coloured by the expression of one gene"></div>
-            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Genes</strong> Streamed at ~30&nbsp;kB a gene.</span></figcaption>
+            <div class="wk-tile__media"><img src="assets/media/views-genes.webp" width="620" height="383" loading="lazy" decoding="async" alt="A colon section coloured by the expression of one gene"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Genes</strong> Any gene, streamed on demand.</span></figcaption>
           </figure>
           <figure class="wk-tile">
             <div class="wk-tile__media"><img src="assets/media/views-embedding.webp" width="620" height="383" loading="lazy" decoding="async" alt="The UMAP embedding of the section, coloured by cell type"></div>
