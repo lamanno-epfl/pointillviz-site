@@ -898,8 +898,6 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
   height: 100%;
   object-fit: cover;
 }
-.wk-tile__media--low > img,
-.wk-tile__media--low > video { object-position: 50% 72%; }
 .wk-tile__media > video { opacity: 0; transition: opacity 400ms ease; }
 .wk-tile__media > video.is-playing { opacity: 1; }
 .wk-tile--fig .wk-tile__media { background: #000; }
@@ -1034,6 +1032,13 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
   }
   .wk-tile:not(.wk-tile--big) .wk-tile__cap { padding: 10px 13px 11px; font-size: 0.8125rem; }
 }
+
+/* Analyses: captures of the viewer shown whole, on the viewer's own ground, so no
+   tile ratio cuts the Lens panel, the loupe or a region (below the bento each tile
+   takes its capture's ratio from the inline --ar) */
+.wk-tile--app .wk-tile__media { background: rgb(12, 14, 19); }
+.wk-tile--app .wk-tile__media > img,
+.wk-tile--app .wk-tile__media > video { object-fit: contain; }
 
 /* ═══════════════════════════ 3 · Extend ═════════════════════════════════ */
 
