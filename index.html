@@ -3,101 +3,496 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    // First of all: the particles of the case the address names (the 2D section, or #3d, #atlas,
+    // #multiomics) start to load, in browsers that have WebGL2 to draw them.
+    (function (d) {
+      try {
+        if (!('WebGL2RenderingContext' in window)) return;
+        var h = (location.hash || '').slice(1).toLowerCase();
+        var l = d.createElement('link');
+        l.rel = 'preload';
+        l.as = 'fetch';
+        l.crossOrigin = 'anonymous';
+        l.setAttribute('fetchpriority', 'high');   // ahead of the pictures further down
+        l.href = 'assets/data/hero/' + (h === '3d' || h === 'atlas' || h === 'multiomics' ? h : '2d') + '.bin';
+        d.head.appendChild(l);
+      } catch (e) {}
+    })(document);
+  </script>
+  <meta name="theme-color" content="#06070D">
   <title>PointillViz · the spatial omics workbench</title>
-  <meta name="description" content="PointillViz is an interactive workbench for spatial omics that runs in the browser, from a single tissue section to a cohort atlas of more than ten million cells.">
-  <meta name="theme-color" content="#0A0C18">
+  <meta name="description" content="A browser workbench for spatial omics: every cell, molecule and modality in one viewer, with more than 30 analyses, community tools and an AI agent.">
   <link rel="canonical" href="https://pointillviz.com/">
-
-  <!-- What a link to the site shows when it is shared in chat apps and social media. -->
+  <meta property="og:site_name" content="PointillViz">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://pointillviz.com/">
-  <meta property="og:title" content="PointillViz · the spatial omics workbench">
-  <meta property="og:description" content="Visualize, explore and analyze millions of cells, molecules and modalities live in the browser.">
-  <meta property="og:image" content="https://pointillviz.com/media/social-card.jpg">
+  <meta property="og:title" content="PointillViz: the spatial omics workbench">
+  <meta property="og:description" content="Measure the pattern where you see it: sections, volumes, atlases and multi-omics in the browser, with community tools and an AI agent.">
+  <meta property="og:image" content="https://pointillviz.com/assets/media/social-card.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="PointillViz, the spatial omics workbench: the dotted wordmark beside a mouse colon section coloured by cell type.">
   <meta name="twitter:card" content="summary_large_image">
-
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/pv/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Codystar&family=DM+Sans:opsz,wght@9..40,400..600&family=JetBrains+Mono:wght@500&display=swap">
-
-  <!-- Colours and type are the PointillViz app's own: ink background, cream text,
-       phosphor accent; Codystar for the wordmark, DM Sans for text, JetBrains Mono for labels. -->
-  <style>
-    :root {
-      --ink: #0A0C18;
-      --rule: rgba(239, 230, 210, 0.12);
-      --warm: #EFE6D2;
-      --warm-mute: rgba(239, 230, 210, 0.70);
-      --warm-faint: rgba(239, 230, 210, 0.48);
-      --phosphor: #6FE0BD;
-      --gutter: clamp(16px, 4vw, 40px);
-      color-scheme: dark;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--ink);
-      color: var(--warm-mute);
-      font: 400 18px/1.6 'DM Sans', system-ui, sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
-    main, footer { max-width: 1040px; margin: 0 auto; padding-inline: var(--gutter); }
-    main { padding-block: clamp(48px, 10vw, 112px) 48px; }
-
-    .eyebrow {
-      display: flex; align-items: center; gap: 12px; margin: 0;
-      font: 500 12px/1.4 'JetBrains Mono', monospace;
-      letter-spacing: 0.32em; text-transform: uppercase; color: var(--warm-faint);
-    }
-    .eyebrow::before {
-      content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%;
-      background: var(--phosphor); box-shadow: 0 0 10px var(--phosphor);
-    }
-    h1 {
-      margin: 20px 0 28px;
-      font: 400 clamp(42px, 13vw, 120px)/1 'Codystar', monospace;
-      letter-spacing: 0.06em; color: var(--warm);
-      text-shadow: 0 0 14px rgba(111, 224, 189, 0.50),
-                   0 0 40px rgba(111, 224, 189, 0.28),
-                   0 0 80px rgba(111, 224, 189, 0.14);
-    }
-    .lede { max-width: 34em; margin: 0; font-size: clamp(19px, 2.4vw, 24px); line-height: 1.45; }
-    .lede strong { color: var(--warm); font-weight: 600; }
-
-    figure { margin: clamp(40px, 7vw, 72px) 0 0; }
-    figure img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 10px; }
-    figcaption { margin-top: 12px; font-size: 14px; color: var(--warm-faint); }
-    .about { max-width: 40em; margin: 40px 0 0; }
-
-    footer {
-      padding-block: 0 40px;
-      font: 500 12px/1.6 'JetBrains Mono', monospace;
-      letter-spacing: 0.14em; text-transform: uppercase; color: var(--warm-faint);
-    }
-    /* The rule sits on the text, not the padded footer box, so it ends where the content does. */
-    footer > p { margin: 0; padding-top: 28px; border-top: 1px solid var(--rule); }
-    a { color: var(--phosphor); text-decoration: none; }
-    a:hover { text-decoration: underline; text-underline-offset: 3px; }
-  </style>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,400&amp;family=Fraunces:opsz,wght@9..144,600&amp;family=JetBrains+Mono:wght@400..600&amp;display=swap">
+  <link rel="stylesheet" href="assets/pv/pv.css">
+  <link rel="stylesheet" href="assets/css/home.css">
+  <script>
+    // Before the first paint: script is on, and on screens larger than 1440 x 900 the whole
+    // page is laid out for (viewport / k) and drawn k times larger (k at most 1.6).
+    (function (d) {
+      d.classList.add('js');
+      try {
+        var w = d.clientWidth || innerWidth, k = Math.min(Math.max(Math.min(w / 1440, innerHeight / 900), 1), 1.6);
+        d.style.setProperty('--k', k.toFixed(4));
+        d.style.setProperty('--dvw', (w / k / 100).toFixed(3) + 'px');
+      } catch (e) {}
+    })(document.documentElement);
+  </script>
+  <link rel="modulepreload" href="assets/js/pointcloud.js">
+  <link rel="preload" href="assets/data/hero/manifest.json" as="fetch" crossorigin="anonymous">
+  <script src="assets/pv/pv.js" defer></script>
+  <script type="module" src="assets/js/home.js"></script>
+  <noscript><style>.pv-topbar__menu { display: none !important; } @media (max-width: 759.98px) { .hx { padding-top: calc(var(--pv-topbar-h) + 46px); } }</style></noscript>
 </head>
 <body>
-  <main>
-    <p class="eyebrow">The spatial omics workbench</p>
-    <h1>PointillViz</h1>
-    <p class="lede">Visualize, explore and analyze <strong>millions of cells, molecules and modalities</strong> live in the browser, extended by a community tool store and wired to <strong>AI agents through MCP</strong>.</p>
+  <a class="pv-skip" href="#main">Skip to content</a>
 
-    <figure>
-      <img src="media/atlas.webp" width="1760" height="1100" decoding="async"
-           alt="A multi-section atlas composed into one montage in the PointillViz viewer, coloured by cell type, with the section strip grouped by condition">
-      <figcaption>An atlas in PointillViz: many sections in one montage.</figcaption>
-    </figure>
+  <header class="pv-topbar pv-topbar--overlay">
+    <div class="pv-topbar__inner">
+      <a class="pv-topbar__brand" href="./">
+        <img src="assets/pv/logo.svg" width="169" height="20" alt="PointillViz">
+      </a>
+      <nav class="pv-topbar__nav" aria-label="Main">
+        <ul>
+          <li><a href="./" aria-current="page">Overview</a></li>
+          <li><a href="https://docs.pointillviz.com/">Docs</a></li>
+          <li><a href="https://store.pointillviz.com/">Tool Store</a></li>
+          <li><a href="#" data-placeholder="paper">Paper</a></li>
+        </ul>
+      </nav>
+      <div class="pv-topbar__end">
+        <button class="pv-topbar__menu" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="pv-drawer" data-pv-drawer-open="pv-drawer">
+          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><circle cx="4" cy="4" r="1.6"/><circle cx="10" cy="4" r="1.6"/><circle cx="16" cy="4" r="1.6"/><circle cx="4" cy="10" r="1.6"/><circle cx="10" cy="10" r="1.6"/><circle cx="16" cy="10" r="1.6"/><circle cx="4" cy="16" r="1.6"/><circle cx="10" cy="16" r="1.6"/><circle cx="16" cy="16" r="1.6"/></svg>
+          <span class="pv-sr-only">Menu</span>
+        </button>
+      </div>
+    </div>
+    <noscript>
+      <nav class="pv-nojs-nav" aria-label="Main">
+        <a href="./" aria-current="page">Overview</a><a href="https://docs.pointillviz.com/">Docs</a><a href="https://store.pointillviz.com/">Tool Store</a>
+      </nav>
+    </noscript>
+  </header>
 
-    <p class="about">PointillViz is an interactive workbench for spatial omics that runs in the browser. It opens anything from a single tissue section to a cohort atlas of more than ten million cells, shows every cell, every detected molecule and every measured modality, and puts live exploration instruments, more than thirty analyses, a community tool store and an AI agent that works through PointillViz's own MCP tools on the same screen.</p>
+  <dialog class="pv-drawer" id="pv-drawer" aria-label="Menu">
+    <div class="pv-drawer__panel">
+      <div class="pv-drawer__head">
+        <img src="assets/pv/logo.svg" width="152" height="18" alt="PointillViz">
+        <button class="pv-btn pv-btn--ghost pv-btn--icon" type="button" data-pv-drawer-close aria-label="Close menu" autofocus>
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15"/></svg>
+        </button>
+      </div>
+      <nav aria-label="Main">
+        <ul class="pv-drawer__nav">
+          <li><a href="./" aria-current="page"><span class="pv-drawer__name">Overview</span><span class="pv-drawer__host">pointillviz.com</span></a></li>
+          <li><a href="https://docs.pointillviz.com/"><span class="pv-drawer__name">Docs</span><span class="pv-drawer__host">docs.pointillviz.com</span></a></li>
+          <li><a href="https://store.pointillviz.com/"><span class="pv-drawer__name">Tool Store</span><span class="pv-drawer__host">store.pointillviz.com</span></a></li>
+          <li><a href="#" data-placeholder="paper"><span class="pv-drawer__name">Paper</span><span class="pv-drawer__host">bioRxiv</span></a></li>
+        </ul>
+      </nav>
+      <div class="pv-drawer__foot">
+        <p>© 2026 PointillViz</p>
+      </div>
+    </div>
+  </dialog>
+
+  <main id="main">
+    <!-- 1 · The instrument: real cells of four datasets in one viewer -->
+    <section class="hx" id="top" aria-labelledby="hx-title" data-theme="dark" data-case="2d">
+      <div class="hx__wash" aria-hidden="true"><i class="is-on"></i><i></i></div>
+      <div class="hx__frame">
+        <div class="hx__copy">
+          <p class="pv-eyebrow hx__eyebrow">The spatial omics workbench</p>
+          <h1 class="pv-display hx__title" id="hx-title"><span class="hx__line">Measure the pattern</span> <span class="hx__line"><span class="pv-em-gradient">where you see it.</span></span></h1>
+          <p class="pv-lede hx__lede">Sections, volumes, atlases and multi-omics, in the browser. Explore live, analyze in place, extend with community tools and AI agents.</p>
+          <dl class="pv-stats hx__stats">
+            <div class="pv-stat"><dt>cells in one atlas</dt><dd>10M+</dd></div>
+            <div class="pv-stat"><dt>analyses on demand</dt><dd>30+</dd></div>
+            <div class="pv-stat"><dt>community tools</dt><dd>12</dd></div>
+            <div class="pv-stat"><dt>MCP tools for agents</dt><dd>13</dd></div>
+          </dl>
+          <div class="hx__cta">
+            <a class="pv-btn pv-btn--primary pv-btn--lg" href="https://store.pointillviz.com/"><svg aria-hidden="true"><use href="assets/pv/icons.svg#i-tool"/></svg>Browse the tools</a>
+            <a class="pv-btn pv-btn--secondary pv-btn--lg" href="https://docs.pointillviz.com/"><svg aria-hidden="true"><use href="assets/pv/icons.svg#i-book"/></svg>Read the docs</a>
+            <a class="pv-btn pv-btn--ghost pv-btn--lg hx__get" href="#" data-placeholder="code"><span class="pv-btn__stack"><span>Get PointillViz</span><span class="pv-btn__sub">Coming soon</span></span></a>
+          </div>
+        </div>
+
+        <!-- what is on screen: the counts and the colour key, as the viewer's own panel -->
+        <div class="hx__readout" id="hx-readout">
+          <dl class="hx__nums" id="hx-nums">
+            <div><dt>cells</dt><dd class="pv-num">135,232</dd></div>
+            <div><dt>cell types</dt><dd class="pv-num">73</dd></div>
+          </dl>
+          <p class="hx__key-title" id="hx-keytitle">Top cell types</p>
+          <ul class="hx__legend hx__legend--long" id="hx-legend" aria-labelledby="hx-keytitle">
+            <li><i style="--c:#e6194b"></i>Smooth muscle</li>
+            <li><i style="--c:#3cb44b"></i>Mature enterocytes I</li>
+            <li><i style="--c:#ffe119"></i>Immature enterocytes I</li>
+            <li><i style="--c:#4363d8"></i>Mature enterocytes III</li>
+            <li><i style="--c:#f58231"></i>Mature enterocytes II</li>
+            <li><i style="--c:#911eb4"></i>Car8+ GCs II</li>
+            <li><i style="--c:#42d4f4"></i>Immature enterocytes IV</li>
+            <li><i style="--c:#f032e6"></i>Immature enterocytes III</li>
+          </ul>
+        </div>
+
+        <div class="hx__bar">
+          <!-- the control and the state it changes, together: caption above the four cases -->
+          <div class="hx__dock" id="hx-dock">
+            <p class="hx__dock-label">Four datasets, one viewer</p>
+            <p class="hx__status">
+              <span class="hx__words">
+                <span class="hx__cap"><i class="hx__case-dot" aria-hidden="true"></i><span class="hx__cap-long" data-r="caption">Xenium 5K · mouse colon · 135,232 cells</span><span class="hx__cap-short" data-r="short">Xenium 5K · mouse colon · 135k cells</span></span>
+                <span class="hx__say" data-r="line">Cells, images, outlines and molecules, in place.</span>
+              </span>
+            </p>
+            <div class="hx__cases" role="group" aria-label="Choose a dataset">
+              <button class="pv-btn pv-btn--case hx__case-btn" type="button" data-case="2d" data-state="2d" aria-pressed="true">
+                <svg aria-hidden="true"><use href="assets/pv/icons.svg#i-case-2d"/></svg>
+                <span class="pv-btn__stack"><span>2D section</span><span class="hx__sub">Xenium 5K</span></span>
+              </button>
+              <button class="pv-btn pv-btn--case hx__case-btn" type="button" data-case="3d" data-state="3d" aria-pressed="false">
+                <svg aria-hidden="true"><use href="assets/pv/icons.svg#i-case-3d"/></svg>
+                <span class="pv-btn__stack"><span>3D volume</span><span class="hx__sub">3D IMC</span></span>
+              </button>
+              <button class="pv-btn pv-btn--case hx__case-btn" type="button" data-case="atlas" data-state="atlas" aria-pressed="false">
+                <svg aria-hidden="true"><use href="assets/pv/icons.svg#i-case-atlas"/></svg>
+                <span class="pv-btn__stack"><span>Atlas</span><span class="hx__sub">Atlas</span></span>
+              </button>
+              <button class="pv-btn pv-btn--case hx__case-btn" type="button" data-case="omics" data-state="multiomics" aria-pressed="false">
+                <svg aria-hidden="true"><use href="assets/pv/icons.svg#i-case-omics"/></svg>
+                <span class="pv-btn__stack"><span>Multi-omics</span><span class="hx__sub">Spatial-Mux-seq</span></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hx__stage" id="hx-stage">
+        <div class="hx__gl" id="hx-gl"></div>
+        <div class="hx__stillbox" id="hx-still"></div>
+        <div class="hx__marks" id="hx-groups" aria-hidden="true"></div>
+        <div class="hx__marks hx__marks--plates" id="hx-plates" aria-hidden="true"></div>
+        <div class="hx__focus" aria-hidden="true"></div>
+        <div class="hx__strip" id="hx-strip">
+          <button class="hx__motion" id="hx-motion" type="button" aria-label="Pause the motion" data-state="playing" hidden></button>
+          <p class="hx__hint" id="hx-hint" hidden><svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10a6.5 6.5 0 0 1 11.6-4"/><path d="M15.6 2.8v3.4h-3.4"/><path d="M16.5 10a6.5 6.5 0 0 1-11.6 4"/><path d="M4.4 17.2v-3.4h3.4"/></svg><span>Drag to rotate</span><kbd aria-hidden="true">←</kbd><kbd aria-hidden="true">→</kbd></p>
+          <p class="hx__fallback" id="hx-fallback" hidden>This browser cannot draw the interactive view, so a still image is shown.</p>
+          <p class="hx__scale" id="hx-scale" aria-hidden="true" data-off><i></i><span></span></p>
+        </div>
+        <noscript><div class="hx__stillbox"><img src="assets/data/hero/poster-2d.webp" width="1600" height="1000" alt="Still image of a Xenium 5K mouse colon section, 135,232 cells coloured by 73 cell types"></div></noscript>
+      </div>
+      <div class="hx__scrim" aria-hidden="true"></div>
+
+      <p class="pv-sr-only" id="hx-live" aria-live="polite"></p>
+      <p class="pv-sr-only" id="hx-alt">An interactive point cloud drawn from real cells, in four cases: a Xenium 5K mouse colon section (135,232 cells, 73 cell types); 3D imaging mass cytometry of a HER2⁺ breast carcinoma (108,486 cells, 25 proteins, 17 cell types); an atlas of many sections; and one gene, Pde10a, in RNA, ATAC, H3K27ac and H3K27me3 of a Spatial-Mux-seq mouse brain section (9,686 spots). Cells keep their datasets' own cell-type colours.</p>
+      <p class="pv-sr-only" id="hx-keys">Drag to rotate, or use the arrow keys.</p>
+      <div class="hx__tip" id="hx-tip" aria-hidden="true"><b><i></i><span></span></b><small></small></div>
+    </section>
+
+    <!-- 2 · Workspace: data, views and analyses (Fig. 1a, b) -->
+    <section class="wk" id="workspace" aria-labelledby="wk-title">
+      <div class="pv-container pv-container--wide wk__inner" data-pv-tabs>
+        <div class="wk__head">
+          <div class="wk__heading" data-reveal>
+            <p class="pv-label">Workspace</p>
+            <h2 class="wk__title" id="wk-title">Every cell, every molecule, every modality.</h2>
+          </div>
+          <div class="pv-tabs__list wk__tabs" role="tablist" aria-label="Workspace">
+            <button class="pv-tabs__tab wk__tab" type="button" role="tab" id="wk-t-data" aria-controls="wk-p-data" aria-selected="true">Data</button>
+            <button class="pv-tabs__tab wk__tab" type="button" role="tab" id="wk-t-views" aria-controls="wk-p-views" aria-selected="false">Views</button>
+            <button class="pv-tabs__tab wk__tab" type="button" role="tab" id="wk-t-ana" aria-controls="wk-p-ana" aria-selected="false">Analyses</button>
+          </div>
+        </div>
+
+        <!-- Data -->
+        <div class="pv-tabs__panel wk__panel" role="tabpanel" id="wk-p-data" aria-labelledby="wk-t-data" data-reveal="stagger">
+          <figure class="wk-tile wk-tile--big">
+            <div class="wk-tile__media">
+              <img src="assets/media/data-images.webp" width="1040" height="800" loading="lazy" decoding="async" alt="Cell outlines coloured by cell type over the H&amp;E image of a Xenium 5K mouse colon section">
+              <video class="wk-vid" data-src="assets/media/data-images.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
+              <button class="wk-play" type="button" aria-label="Pause the clip" hidden></button>
+            </div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Images</strong> H&amp;E and stains, up to 8 channels.</span><span class="wk-tile__meta">Xenium 5K · mouse colon</span></figcaption>
+          </figure>
+          <figure class="wk-tile wk-tile--wide" style="--ar: 2.89">
+            <div class="wk-tile__media"><img src="assets/media/data-omics.webp" width="1036" height="358" loading="lazy" decoding="async" alt="Pde10a in RNA, ATAC, H3K27ac and H3K27me3 of a Spatial-Mux-seq mouse brain section, four maps side by side"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Multi-omics</strong> RNA, ATAC, histone marks and protein.</span><span class="wk-tile__meta">Spatial-Mux-seq · mouse brain · <span translate="no">Pde10a</span></span></figcaption>
+          </figure>
+          <figure class="wk-tile">
+            <div class="wk-tile__media"><img src="assets/media/data-cells.webp" width="620" height="383" loading="lazy" decoding="async" alt="One field of the mouse colon section drawn as points, each cell coloured by its type"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Cells</strong> From an <span translate="no">.h5ad</span>, cell types up to five nested levels.</span></figcaption>
+          </figure>
+          <figure class="wk-tile">
+            <div class="wk-tile__media"><img src="assets/media/data-molecules.webp" width="420" height="260" loading="lazy" decoding="async" alt="Transcripts of Pigr, Muc2 and Krt19 drawn as coloured spots over the crypts of the mouse colon section"><span class="wk-tile__note">Molecule positions simulated from the measured counts.</span></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Molecules</strong> Every detected transcript, as a spot.</span><span class="wk-tile__meta wk-tile__meta--note">Molecule positions simulated from the measured counts.</span></figcaption>
+          </figure>
+        </div>
+
+        <!-- Views -->
+        <div class="pv-tabs__panel wk__panel" role="tabpanel" id="wk-p-views" aria-labelledby="wk-t-views" hidden>
+          <figure class="wk-tile wk-tile--big">
+            <div class="wk-tile__media">
+              <img src="assets/media/views-landscape.webp" width="900" height="692" loading="lazy" decoding="async" alt="The mouse colon section as an Expression Landscape: each cell raised as a column by its Lgals3 expression, coloured by cell type">
+              <video class="wk-vid" data-src="assets/media/views-landscape.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
+              <button class="wk-play" type="button" aria-label="Pause the clip" hidden></button>
+            </div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Expression Landscape</strong> Cells raised by a gene’s expression.</span><span class="wk-tile__meta">Xenium 5K · mouse colon · <span translate="no">Lgals3</span></span></figcaption>
+          </figure>
+          <figure class="wk-tile wk-tile--wide" style="--ar: 2.66">
+            <div class="wk-tile__media"><img src="assets/media/views-polygons.webp" width="900" height="338" loading="lazy" decoding="async" alt="One field of the colon section drawn as each cell’s segmentation outline, with the nuclei inside"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Polygons</strong> Points, or each cell’s outline.</span><span class="wk-tile__meta">Xenium 5K · mouse colon</span></figcaption>
+          </figure>
+          <figure class="wk-tile">
+            <div class="wk-tile__media"><img src="assets/media/views-genes.webp" width="620" height="383" loading="lazy" decoding="async" alt="The colon section coloured by the expression of one gene"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Genes</strong> Streamed at ~30&nbsp;kB a gene.</span></figcaption>
+          </figure>
+          <figure class="wk-tile">
+            <div class="wk-tile__media"><img src="assets/media/views-embedding.webp" width="620" height="383" loading="lazy" decoding="async" alt="The UMAP embedding of the section, coloured by cell type"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Embedding</strong> UMAP, brushed with the tissue.</span></figcaption>
+          </figure>
+        </div>
+
+        <!-- Analyses -->
+        <div class="pv-tabs__panel wk__panel" role="tabpanel" id="wk-p-ana" aria-labelledby="wk-t-ana" hidden>
+          <figure class="wk-tile wk-tile--big wk-tile--fig">
+            <div class="wk-tile__media"><img src="assets/media/ana-moran.webp" width="1180" height="908" loading="lazy" decoding="async" alt="Moran’s I of the five highest-ranked genes, Krt20 first, beside a map of the section with the cells of Krt20’s high–high class in red"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Spatial statistics</strong> Moran’s I, with closed-form nulls.</span><span class="wk-tile__meta">Xenium 5K · mouse colon</span></figcaption>
+          </figure>
+          <figure class="wk-tile wk-tile--wide" style="--ar: 2.4">
+            <div class="wk-tile__media wk-tile__media--low">
+              <img src="assets/media/ana-lens.webp" width="1100" height="458" loading="lazy" decoding="async" alt="The Lens: a loupe over the colon section and the panel that recounts the cell types under it">
+              <video class="wk-vid" data-src="assets/media/ana-lens.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
+              <button class="wk-play" type="button" aria-label="Pause the clip" hidden></button>
+            </div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Lens &amp; Gating</strong> Recount what is on screen, every frame.</span></figcaption>
+          </figure>
+          <figure class="wk-tile wk-tile--fig wk-tile--panel">
+            <div class="wk-tile__media"><img src="assets/media/ana-lasso.webp" width="760" height="463" loading="lazy" decoding="async" alt="A lasso region drawn on the cells and the volcano plot of differential expression between two regions, Pigr and Epcam on one side, Cd74 and C3 on the other"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Lasso → region</strong> Composition, top genes, a volcano.</span></figcaption>
+          </figure>
+          <figure class="wk-tile wk-tile--fig wk-tile--panel">
+            <div class="wk-tile__media"><img src="assets/media/ana-lr.webp" width="760" height="463" loading="lazy" decoding="async" alt="Cxcl13-positive and Cxcr5-positive cells where they meet in the colon section"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Ligand–receptor</strong> Pairs scored in well under a second.</span></figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 · Extend: community tools and the AI assistant (Fig. 2) -->
+    <section class="ex" id="extend" aria-label="Extend">
+      <div class="ex__grid" data-reveal>
+
+        <article class="ex__card ex__tools" aria-labelledby="ex-tools-title">
+          <header class="ex__head">
+            <p class="pv-label">Community tools</p>
+            <h2 class="ex__title" id="ex-tools-title">Analyses that anyone can add</h2>
+            <p class="ex__lede">One Python file and a manifest. No interface code.</p>
+          </header>
+
+          <div class="ex__anatomy">
+            <div class="ex__files">
+              <figure class="pv-code ex__code" translate="no">
+                <figcaption class="pv-code__head"><span class="pv-code__title"><span class="ex__n" aria-hidden="true">1</span>tool.py</span></figcaption>
+                <pre><code><span class="tk-k">def</span> <span class="tk-f">run</span><span class="tk-p">(</span>ds<span class="tk-p">,</span> params<span class="tk-p">):</span>
+    <span class="tk-c">...</span>
+    <span class="tk-k">return</span> <span class="tk-p">{</span><span class="tk-s">"summary"</span><span class="tk-p">:</span> <span class="tk-c">...</span><span class="tk-p">,</span>
+            <span class="tk-s">"cells"</span><span class="tk-p">:</span> <span class="tk-c">...</span><span class="tk-p">,</span>
+            <span class="tk-s">"table"</span><span class="tk-p">:</span> <span class="tk-c">...</span><span class="tk-p">}</span></code></pre>
+              </figure>
+              <figure class="pv-code ex__code ex__code--params" translate="no">
+                <figcaption class="pv-code__head"><span class="pv-code__title"><span class="ex__n" aria-hidden="true">2</span>plugin.json · params</span></figcaption>
+                <pre><code><span class="tk-c"># name     type    default</span>
+gene       <span class="tk-t">gene</span>
+k          <span class="tk-t">int</span>     <span class="tk-n">15</span>
+normalize  <span class="tk-t">select</span>  <span class="tk-s">log1p</span>
+alpha      <span class="tk-t">float</span>   <span class="tk-n">0.05</span>
+fdr        <span class="tk-t">bool</span>    <span class="tk-n">true</span></code></pre>
+              </figure>
+            </div>
+            <span class="ex__arrow" aria-hidden="true"></span>
+            <figure class="ex__run">
+              <div class="ex__run-media">
+                <img src="assets/media/ext-form.webp" width="900" height="770" loading="lazy" decoding="async" alt="The viewer’s form for Expression Hotspots, generated from its manifest, and the section painted by the result for Muc2">
+                <video class="wk-vid" data-src="assets/media/ext-form.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
+                <span class="ex__n ex__n--form" aria-hidden="true">3</span>
+                <span class="ex__n ex__n--result" aria-hidden="true">4</span>
+                <button class="wk-play" type="button" aria-label="Pause the clip" hidden></button>
+              </div>
+              <figcaption class="ex__run-cap">Expression Hotspots · Xenium 5K · mouse colon</figcaption>
+            </figure>
+            <ol class="ex__parts">
+              <li><b translate="no">tool.py</b> <code translate="no">run(ds, params)</code></li>
+              <li><b translate="no">plugin.json</b> Parameters, needs, outputs</li>
+              <li><b>Form</b> Generated from the manifest</li>
+              <li><b>Result</b> Drawn by the viewer</li>
+            </ol>
+          </div>
+
+          <div class="ex__gates">
+            <p class="ex__gates-head"><span class="pv-label">Nine gates</span> <span>Checked on publish and again on install.</span></p>
+            <ol class="pv-gates ex__gate-list">
+              <li class="pv-gate" data-state="pass"><span class="pv-gate__name" translate="no">bundle</span><span class="pv-sr-only">, required</span></li>
+              <li class="pv-gate" data-state="pass"><span class="pv-gate__name" translate="no">manifest</span><span class="pv-sr-only">, required</span></li>
+              <li class="pv-gate" data-state="pass"><span class="pv-gate__name" translate="no">entry</span><span class="pv-sr-only">, required</span></li>
+              <li class="pv-gate" data-state="advisory"><span class="pv-gate__name" translate="no">imports</span><span class="pv-sr-only">, advisory</span></li>
+              <li class="pv-gate" data-state="pass"><span class="pv-gate__name" translate="no">fixture</span><span class="pv-sr-only">, required</span></li>
+              <li class="pv-gate" data-state="pass"><span class="pv-gate__name" translate="no">result</span><span class="pv-sr-only">, required</span></li>
+              <li class="pv-gate" data-state="pass"><span class="pv-gate__name" translate="no">determinism</span><span class="pv-sr-only">, required</span></li>
+              <li class="pv-gate" data-state="pass"><span class="pv-gate__name" translate="no">edge</span><span class="pv-sr-only">, required</span></li>
+              <li class="pv-gate" data-state="pass"><span class="pv-gate__name" translate="no">no_mutation</span><span class="pv-sr-only">, required</span></li>
+            </ol>
+            <p class="ex__gates-note"><code>imports</code> is advisory.</p>
+          </div>
+
+          <div class="ex__store">
+            <div class="ex__store-head">
+              <p class="pv-label">12 tools</p>
+              <div class="ex__rail-nav">
+                <button class="ex__rail-btn" type="button" data-rail="-1" aria-controls="ex-rail" aria-label="Previous tools"><svg aria-hidden="true"><use href="assets/pv/icons.svg#i-arrow-left"/></svg></button>
+                <button class="ex__rail-btn" type="button" data-rail="1" aria-controls="ex-rail" aria-label="Next tools"><svg aria-hidden="true"><use href="assets/pv/icons.svg#i-arrow-right"/></svg></button>
+              </div>
+            </div>
+            <ul class="ex__rail" id="ex-rail" aria-label="The 12 tools in the Tool Store">
+              <li><a class="ex__tool" href="https://store.pointillviz.com/tools/categorical-chords/" data-q="Which annotations share contacts or members, as count-weighted ribbons?"><img src="assets/media/tools/categorical-chords.webp" width="400" height="233" loading="lazy" decoding="async" alt=""><span class="ex__tool-name" translate="no">Categorical Chords</span><span class="pv-sr-only">: Which annotations share contacts or members, as count-weighted ribbons?</span></a></li>
+              <li><a class="ex__tool" href="https://store.pointillviz.com/tools/celltype-cooccurrence/" data-q="Which pairs of types are adjacent more often than chance?"><img src="assets/media/tools/celltype-cooccurrence.webp" width="400" height="233" loading="lazy" decoding="async" alt=""><span class="ex__tool-name" translate="no"><span class="nw">Cell-Type</span> <span class="nw">Co-occurrence</span></span><span class="pv-sr-only">: Which pairs of types are adjacent more often than chance?</span></a></li>
+              <li><a class="ex__tool" href="https://store.pointillviz.com/tools/celltype-percolation/" data-q="Is a cell type one connected mass or many islands?"><img src="assets/media/tools/celltype-percolation.webp" width="400" height="233" loading="lazy" decoding="async" alt=""><span class="ex__tool-name" translate="no"><span class="nw">Cell-Type</span> Percolation</span><span class="pv-sr-only">: Is a cell type one connected mass or many islands?</span></a></li>
+              <li><a class="ex__tool" href="https://store.pointillviz.com/tools/conditional-contact-odds/" data-q="How much does one more neighbour of type B change the odds a cell is type A?"><img src="assets/media/tools/conditional-contact-odds.webp" width="400" height="233" loading="lazy" decoding="async" alt=""><span class="ex__tool-name" translate="no">Conditional Contact Odds</span><span class="pv-sr-only">: How much does one more neighbour of type B change the odds a cell is type A?</span></a></li>
+              <li><a class="ex__tool" href="https://store.pointillviz.com/tools/expression-hotspots/" data-q="Where does one gene form clusters of high or low expression?"><img src="assets/media/tools/expression-hotspots.webp" width="400" height="233" loading="lazy" decoding="async" alt=""><span class="ex__tool-name" translate="no">Expression Hotspots</span><span class="pv-sr-only">: Where does one gene form clusters of high or low expression?</span></a></li>
+              <li><a class="ex__tool" href="https://store.pointillviz.com/tools/interface-coherence/" data-q="Do two cell types meet along one front, or in specks?"><img src="assets/media/tools/interface-coherence.webp" width="400" height="233" loading="lazy" decoding="async" alt=""><span class="ex__tool-name" translate="no">Interface Coherence</span><span class="pv-sr-only">: Do two cell types meet along one front, or in specks?</span></a></li>
+              <li><a class="ex__tool" href="https://store.pointillviz.com/tools/local-density/" data-q="How crowded is the tissue around each cell?"><img src="assets/media/tools/local-density.webp" width="400" height="233" loading="lazy" decoding="async" alt=""><span class="ex__tool-name" translate="no">Local Cell Density</span><span class="pv-sr-only">: How crowded is the tissue around each cell?</span></a></li>
+              <li><a class="ex__tool" href="https://store.pointillviz.com/tools/neighborhood-composition/" data-q="How interleaved is each cell’s neighbourhood, and who sits next to whom?"><img src="assets/media/tools/neighborhood-composition.webp" width="400" height="233" loading="lazy" decoding="async" alt=""><span class="ex__tool-name" translate="no">Neighborhood Composition</span><span class="pv-sr-only">: How interleaved is each cell’s neighbourhood, and who sits next to whom?</span></a></li>
+              <li><a class="ex__tool" href="https://store.pointillviz.com/tools/ripley-cross-l/" data-q="At what distance does cell type B accumulate around type A?"><img src="assets/media/tools/ripley-cross-l.webp" width="400" height="233" loading="lazy" decoding="async" alt=""><span class="ex__tool-name" translate="no">Ripley’s <span class="nw">Cross-L</span></span><span class="pv-sr-only">: At what distance does cell type B accumulate around type A?</span></a></li>
+              <li><a class="ex__tool" href="https://store.pointillviz.com/tools/spatial-scale-spectrum/" data-q="How clustered is each cell type, at every length scale?"><img src="assets/media/tools/spatial-scale-spectrum.webp" width="400" height="233" loading="lazy" decoding="async" alt=""><span class="ex__tool-name" translate="no">Spatial Scale Spectrum</span><span class="pv-sr-only">: How clustered is each cell type, at every length scale?</span></a></li>
+              <li><a class="ex__tool" href="https://store.pointillviz.com/tools/tissue-permeability/" data-q="Which cells does one type seal off from the rest of the tissue?"><img src="assets/media/tools/tissue-permeability.webp" width="400" height="233" loading="lazy" decoding="async" alt=""><span class="ex__tool-name" translate="no">Tissue Permeability</span><span class="pv-sr-only">: Which cells does one type seal off from the rest of the tissue?</span></a></li>
+              <li><a class="ex__tool" href="https://store.pointillviz.com/tools/vector-field/" data-q="Which way does a quantity increase across the tissue?"><img src="assets/media/tools/vector-field.webp" width="400" height="233" loading="lazy" decoding="async" alt=""><span class="ex__tool-name" translate="no">Vector Field</span><span class="pv-sr-only">: Which way does a quantity increase across the tissue?</span></a></li>
+            </ul>
+            <div class="ex__store-foot">
+              <a class="pv-btn pv-btn--secondary ex__store-link" href="https://store.pointillviz.com/">Browse the Tool Store<svg aria-hidden="true"><use href="assets/pv/icons.svg#i-arrow-right"/></svg></a>
+              <p class="ex__q" id="ex-q" aria-hidden="true"></p>
+            </div>
+          </div>
+        </article>
+
+        <article class="ex__card ex__ai" aria-labelledby="ex-ai-title">
+          <header class="ex__head">
+            <p class="pv-label">AI assistant</p>
+            <h2 class="ex__title" id="ex-ai-title">A coding agent inside the viewer</h2>
+          </header>
+
+          <div class="ex__mcp">
+            <figure class="ex__ring" role="group" aria-labelledby="ex-ring-cap">
+              <svg viewBox="0 0 240 240" aria-hidden="true" focusable="false"><circle cx="120" cy="120" r="100" fill="none" stroke="rgba(239,230,210,0.12)" stroke-width="1.2" stroke-dasharray="0.1 5.2" stroke-linecap="round"/><g class="ring-orb" fill="#EFE6D2"><circle cx="145.0" cy="78.9" r="1.0" fill-opacity="0.08"/><circle cx="140.2" cy="83.3" r="1.3" fill-opacity="0.22"/><circle cx="127.7" cy="86.0" r="1.3" fill-opacity="0.22"/><circle cx="112.3" cy="86.0" r="1.3" fill-opacity="0.22"/><circle cx="99.8" cy="83.3" r="1.3" fill-opacity="0.22"/><circle cx="95.0" cy="78.9" r="1.3" fill-opacity="0.22"/><circle cx="99.8" cy="74.5" r="1.0" fill-opacity="0.08"/><circle cx="112.3" cy="71.7" r="1.0" fill-opacity="0.08"/><circle cx="127.7" cy="71.7" r="1.0" fill-opacity="0.08"/><circle cx="140.2" cy="74.5" r="1.0" fill-opacity="0.08"/><circle cx="162.6" cy="98.6" r="1.3" fill-opacity="0.22"/><circle cx="156.8" cy="103.1" r="1.3" fill-opacity="0.22"/><circle cx="146.1" cy="106.6" r="1.3" fill-opacity="0.22"/><circle cx="131.8" cy="108.7" r="1.3" fill-opacity="0.22"/><circle cx="116.0" cy="109.2" r="1.3" fill-opacity="0.22"/><circle cx="100.7" cy="107.9" r="1.3" fill-opacity="0.22"/><circle cx="88.0" cy="105.0" r="1.3" fill-opacity="0.22"/><circle cx="79.6" cy="100.9" r="1.3" fill-opacity="0.22"/><circle cx="76.7" cy="96.2" r="1.3" fill-opacity="0.22"/><circle cx="79.6" cy="91.6" r="1.0" fill-opacity="0.08"/><circle cx="88.0" cy="87.5" r="1.0" fill-opacity="0.08"/><circle cx="100.7" cy="84.6" r="1.0" fill-opacity="0.08"/><circle cx="116.0" cy="83.3" r="1.0" fill-opacity="0.08"/><circle cx="131.8" cy="83.8" r="1.0" fill-opacity="0.08"/><circle cx="146.1" cy="85.9" r="1.0" fill-opacity="0.08"/><circle cx="156.8" cy="89.4" r="1.0" fill-opacity="0.08"/><circle cx="162.6" cy="93.9" r="1.0" fill-opacity="0.08"/><circle cx="170.0" cy="120.0" r="1.0" fill-opacity="0.08"/><circle cx="167.6" cy="124.6" r="1.3" fill-opacity="0.22"/><circle cx="160.5" cy="128.8" r="1.3" fill-opacity="0.22"/><circle cx="149.4" cy="132.1" r="1.3" fill-opacity="0.22"/><circle cx="135.5" cy="134.3" r="1.3" fill-opacity="0.22"/><circle cx="120.0" cy="135.0" r="1.3" fill-opacity="0.22"/><circle cx="104.5" cy="134.3" r="1.3" fill-opacity="0.22"/><circle cx="90.6" cy="132.1" r="1.3" fill-opacity="0.22"/><circle cx="79.5" cy="128.8" r="1.3" fill-opacity="0.22"/><circle cx="72.4" cy="124.6" r="1.3" fill-opacity="0.22"/><circle cx="70.0" cy="120.0" r="1.3" fill-opacity="0.22"/><circle cx="72.4" cy="115.4" r="1.0" fill-opacity="0.08"/><circle cx="79.5" cy="111.2" r="1.0" fill-opacity="0.08"/><circle cx="90.6" cy="107.9" r="1.0" fill-opacity="0.08"/><circle cx="104.5" cy="105.7" r="1.0" fill-opacity="0.08"/><circle cx="120.0" cy="105.0" r="1.0" fill-opacity="0.08"/><circle cx="135.5" cy="105.7" r="1.0" fill-opacity="0.08"/><circle cx="149.4" cy="107.9" r="1.0" fill-opacity="0.08"/><circle cx="160.5" cy="111.2" r="1.0" fill-opacity="0.08"/><circle cx="167.6" cy="115.4" r="1.0" fill-opacity="0.08"/><circle cx="162.6" cy="146.1" r="1.3" fill-opacity="0.22"/><circle cx="156.8" cy="150.6" r="1.3" fill-opacity="0.22"/><circle cx="146.1" cy="154.1" r="1.3" fill-opacity="0.22"/><circle cx="131.8" cy="156.2" r="1.3" fill-opacity="0.22"/><circle cx="116.0" cy="156.7" r="1.3" fill-opacity="0.22"/><circle cx="100.7" cy="155.4" r="1.3" fill-opacity="0.22"/><circle cx="88.0" cy="152.5" r="1.3" fill-opacity="0.22"/><circle cx="79.6" cy="148.4" r="1.3" fill-opacity="0.22"/><circle cx="76.7" cy="143.8" r="1.3" fill-opacity="0.22"/><circle cx="79.6" cy="139.1" r="1.0" fill-opacity="0.08"/><circle cx="88.0" cy="135.0" r="1.0" fill-opacity="0.08"/><circle cx="100.7" cy="132.1" r="1.0" fill-opacity="0.08"/><circle cx="116.0" cy="130.8" r="1.0" fill-opacity="0.08"/><circle cx="131.8" cy="131.3" r="1.0" fill-opacity="0.08"/><circle cx="146.1" cy="133.4" r="1.0" fill-opacity="0.08"/><circle cx="156.8" cy="136.9" r="1.0" fill-opacity="0.08"/><circle cx="162.6" cy="141.4" r="1.0" fill-opacity="0.08"/><circle cx="145.0" cy="161.1" r="1.0" fill-opacity="0.08"/><circle cx="140.2" cy="165.5" r="1.3" fill-opacity="0.22"/><circle cx="127.7" cy="168.3" r="1.3" fill-opacity="0.22"/><circle cx="112.3" cy="168.3" r="1.3" fill-opacity="0.22"/><circle cx="99.8" cy="165.5" r="1.3" fill-opacity="0.22"/><circle cx="95.0" cy="161.1" r="1.3" fill-opacity="0.22"/><circle cx="99.8" cy="156.7" r="1.0" fill-opacity="0.08"/><circle cx="112.3" cy="154.0" r="1.0" fill-opacity="0.08"/><circle cx="127.7" cy="154.0" r="1.0" fill-opacity="0.08"/><circle cx="140.2" cy="156.7" r="1.0" fill-opacity="0.08"/></g><path class="ring-arc" data-g="see" d="M146.2 23.5A100 100 0 0 1 172.7 205.0" fill="none" stroke="#5B8CFF" stroke-opacity="0.32" stroke-width="7" stroke-linecap="round"/><path class="ring-arc" data-g="do" d="M122.6 220.0A100 100 0 0 1 95.5 217.0" fill="none" stroke="#FF8A3D" stroke-opacity="0.32" stroke-width="7" stroke-linecap="round"/><path class="ring-arc" data-g="steer" d="M49.9 191.3A100 100 0 0 1 32.4 71.7" fill="none" stroke="#A77BFF" stroke-opacity="0.32" stroke-width="7" stroke-linecap="round"/><path class="ring-arc" data-g="show" d="M68.8 34.1A100 100 0 0 1 93.8 23.5" fill="none" stroke="#6FE0BD" stroke-opacity="0.32" stroke-width="7" stroke-linecap="round"/></svg>
+              <!-- each point is one MCP tool: a button, so its name can be read by pointer, touch or keyboard -->
+              <div class="ex__ring-pts" translate="no">
+                <button class="ex__pt" type="button" data-g="see" style="--x:66.29%;--y:11.63%;--i:0">list_datasets</button>
+                <button class="ex__pt" type="button" data-g="see" style="--x:78.17%;--y:19.29%;--i:1">describe_dataset</button>
+                <button class="ex__pt" type="button" data-g="see" style="--x:86.83%;--y:30.50%;--i:2">describe_sections</button>
+                <button class="ex__pt" type="button" data-g="see" style="--x:91.21%;--y:43.96%;--i:3">get_view_context</button>
+                <button class="ex__pt" type="button" data-g="see" style="--x:90.88%;--y:58.13%;--i:4">list_plugins</button>
+                <button class="ex__pt" type="button" data-g="see" style="--x:85.79%;--y:71.33%;--i:5">list_analyses</button>
+                <button class="ex__pt" type="button" data-g="see" style="--x:76.58%;--y:82.08%;--i:6">read_analysis</button>
+                <button class="ex__pt" type="button" data-g="do" style="--x:45.38%;--y:91.42%;--i:7">run_plugin</button>
+                <button class="ex__pt" type="button" data-g="steer" style="--x:17.00%;--y:75.46%;--i:8">set_viewer_camera</button>
+                <button class="ex__pt" type="button" data-g="steer" style="--x:10.38%;--y:62.96%;--i:9">set_viewer_tab</button>
+                <button class="ex__pt" type="button" data-g="steer" style="--x:8.33%;--y:48.92%;--i:10">set_viewer_paint</button>
+                <button class="ex__pt" type="button" data-g="steer" style="--x:11.13%;--y:35.04%;--i:11">set_viewer_selection</button>
+                <button class="ex__pt" type="button" data-g="show" style="--x:33.71%;--y:11.63%;--i:12">publish_panel</button>
+              </div>
+              <figcaption id="ex-ring-cap"><span class="ex__ring-rest"><b>13</b>MCP tools</span><span class="ex__ring-pick" aria-hidden="true" translate="no"><i></i><code></code></span></figcaption>
+            </figure>
+            <ul class="ex__groups" id="ex-groups">
+              <li class="ex__group" data-g="see"><p class="ex__g-name">See <span class="ex__g-n">7</span></p><p class="ex__g-line">Reads datasets, the live view, past results.</p></li>
+              <li class="ex__group" data-g="do"><p class="ex__g-name">Do <span class="ex__g-n">1</span></p><p class="ex__g-line">Runs an installed tool.</p></li>
+              <li class="ex__group" data-g="steer"><p class="ex__g-name">Steer <span class="ex__g-n">4</span><span class="ex__switch" role="img" aria-label="Viewer control: Off. The other settings are Ask and Allow."><b aria-hidden="true">Off</b><span aria-hidden="true">Ask</span><span aria-hidden="true">Allow</span></span></p><p class="ex__g-line">Sets the camera, tab, paint and selection.</p></li>
+              <li class="ex__group" data-g="show"><p class="ex__g-name">Show <span class="ex__g-n">1</span></p><p class="ex__g-line">Publishes to the notebook.</p></li>
+            </ul>
+          </div>
+
+          <div class="ex__runtimes">
+            <ul class="pv-tags" aria-label="Runtimes" translate="no">
+              <li class="pv-tag">Claude Code</li>
+              <li class="pv-tag">ChatGPT Codex</li>
+              <li class="pv-tag">Google Antigravity (preview)</li>
+            </ul>
+            <p>Your runtime, your account.</p>
+          </div>
+
+          <figure class="ex__example">
+            <div class="ex__ex-text">
+              <figcaption class="pv-label">Example</figcaption>
+              <blockquote class="ex__quote"><p>“…count how many of the selected cells are in a significant hotspot…”</p></blockquote>
+              <p class="ex__ex-note">Your selection travels with every message.</p>
+              <p class="ex__handles">Every result gets a handle: <span class="ex__h">R01</span>, <span class="ex__h">R02</span>, …</p>
+            </div>
+            <div class="ex__ex-pic">
+              <div class="ex__ex-media"><img src="assets/media/ai-result.webp" width="880" height="663" loading="lazy" decoding="async" alt="One field of the colon section, each cell filled by the Getis-Ord Gi* value of Cd79a that the agent’s Expression Hotspots call returned, warm where the gene clusters, under the cyan outline of the selected cells"></div>
+              <p class="ex__ex-cap">Expression Hotspots · <span translate="no">Cd79a</span> · Xenium 5K · mouse colon</p>
+            </div>
+          </figure>
+          <p class="ex__caveat">Answers are model output; the notebook shows what ran.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 4 · How to cite (brief/CONTENT.md A10): at the end of the page while it is a placeholder;
+         once the preprint is out it can go back to the hero's bar, as on braindev -->
+    <section class="pub" id="cite" aria-labelledby="pub-title">
+      <div class="pv-cite pub__card">
+        <svg class="pv-cite__mark" aria-hidden="true"><use href="assets/pv/icons.svg#i-quote"/></svg>
+        <div class="pv-cite__body">
+          <h2 class="pv-cite__eyebrow" id="pub-title">When using PointillViz, please cite</h2>
+          <p><cite class="pv-cite__title">PointillViz: an interoperable spatial omics workbench integrated with community tools and AI agents</cite></p>
+          <p class="pv-cite__meta"><span>Authors <em>et al.</em></span><span class="pv-cite__venue">bioRxiv · DOI 10.1101/XXXXXXX</span></p>
+        </div>
+        <a class="pv-btn pv-btn--cite pub__btn" href="#" data-placeholder="paper">
+          <svg aria-hidden="true"><use href="assets/pv/icons.svg#i-doc"/></svg>
+          <span class="pv-btn__stack"><span>Read the preprint</span><span class="pv-btn__sub">Coming soon</span></span>
+        </a>
+      </div>
+    </section>
   </main>
 
-  <footer>
-    <p>Developed in the <a href="https://www.epfl.ch/labs/lamanno-lab/">La Manno Lab, EPFL</a></p>
+  <!-- section index: one lit point for the section on screen, and up / down -->
+  <nav class="sx" id="sx" aria-label="Sections">
+    <button class="sx__step" type="button" data-dir="-1" aria-label="Previous section"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 15.5v-11M5.5 9 10 4.5 14.5 9"/></svg></button>
+    <ol class="sx__list">
+      <li><a class="sx__dot" href="#top" aria-current="true"><span class="sx__label">Overview</span></a></li>
+      <li><a class="sx__dot" href="#workspace"><span class="sx__label">Workspace</span></a></li>
+      <li><a class="sx__dot" href="#extend"><span class="sx__label">Extend</span></a></li>
+    </ol>
+    <button class="sx__step" type="button" data-dir="1" aria-label="Next section"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4.5v11M5.5 11 10 15.5 14.5 11"/></svg></button>
+  </nav>
+
+  <footer class="pv-footer">
+    <div class="pv-footer__inner">
+      <a class="pv-footer__brand" href="./" translate="no"><img src="assets/pv/logo-mark.svg" width="28" height="28" alt="">PointillViz</a>
+      <nav class="pv-footer__sites" aria-label="PointillViz sites">
+        <ul>
+          <li><a href="./" aria-current="page"><span class="pv-footer__site">Overview</span><span class="pv-footer__host">pointillviz.com</span></a></li>
+          <li><a href="https://docs.pointillviz.com/"><span class="pv-footer__site">Docs</span><span class="pv-footer__host">docs.pointillviz.com</span></a></li>
+          <li><a href="https://store.pointillviz.com/"><span class="pv-footer__site">Tool Store</span><span class="pv-footer__host">store.pointillviz.com</span></a></li>
+        </ul>
+      </nav>
+      <p class="pv-footer__pub">Preprint: Authors <em>et&nbsp;al.</em>, bioRxiv · <a href="#" data-placeholder="paper">Coming soon</a></p>
+      <p class="pv-footer__copy">© 2026 PointillViz</p>
+    </div>
   </footer>
 </body>
 </html>
