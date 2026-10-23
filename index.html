@@ -112,98 +112,141 @@
   </dialog>
 
   <main id="main">
-    <!-- 1 · The instrument: real cells of four datasets in one viewer -->
-    <section class="hx" id="top" aria-labelledby="hx-title" data-theme="dark" data-case="2d">
-      <div class="hx__wash" aria-hidden="true"><i class="is-on"></i><i></i></div>
-      <div class="hx__frame">
-        <div class="hx__copy">
-          <p class="pv-eyebrow hx__eyebrow">The spatial omics workbench</p>
-          <h1 class="pv-display hx__title" id="hx-title"><span class="hx__line">Measure the pattern</span> <span class="hx__line"><span class="pv-em-gradient">where you see it.</span></span></h1>
+    <!-- 1 · Six cases, one viewer: four kinds of data, the assistant and the store, each its own
+         colour field (braindev's split, extended to six). The open case takes most of the deck; the
+         others narrow to stripes that keep their name, their colour and a glimpse of what they hold. -->
+    <section class="hx" id="top" aria-labelledby="hx-title" data-theme="dark" data-open="2d" data-case="2d">
+      <div class="hx__intro">
+        <h1 class="pv-display hx__title" id="hx-title"><span class="hx__l">Measure the pattern</span> <span class="hx__l"><span class="pv-em-gradient">where you see it.</span></span></h1>
+        <div class="hx__aside">
           <p class="pv-lede hx__lede">Sections, volumes, atlases and multi-omics, in the browser. Explore live, analyze in place, extend with community tools and AI agents.</p>
-          <dl class="pv-stats hx__stats">
-            <div class="pv-stat"><dt>cells in one atlas</dt><dd>10M+</dd></div>
-            <div class="pv-stat"><dt>analyses on demand</dt><dd>30+</dd></div>
-            <div class="pv-stat"><dt>community tools</dt><dd>12</dd></div>
-            <div class="pv-stat"><dt>MCP tools for agents</dt><dd>13</dd></div>
-          </dl>
           <div class="hx__cta">
             <a class="pv-btn pv-btn--primary pv-btn--lg" href="https://store.pointillviz.com/"><svg aria-hidden="true"><use href="assets/pv/icons.svg#i-tool"/></svg>Browse the tools</a>
             <a class="pv-btn pv-btn--secondary pv-btn--lg" href="https://docs.pointillviz.com/"><svg aria-hidden="true"><use href="assets/pv/icons.svg#i-book"/></svg>Read the docs</a>
-            <a class="pv-btn pv-btn--ghost pv-btn--lg hx__get" href="#" data-placeholder="code"><span class="pv-btn__stack"><span>Get PointillViz</span><span class="pv-btn__sub">Coming soon</span></span></a>
-          </div>
-        </div>
-
-        <!-- what is on screen: the counts and the colour key, as the viewer's own panel -->
-        <div class="hx__readout" id="hx-readout">
-          <dl class="hx__nums" id="hx-nums">
-            <div><dt>cells</dt><dd class="pv-num">135,232</dd></div>
-            <div><dt>cell types</dt><dd class="pv-num">73</dd></div>
-          </dl>
-          <p class="hx__key-title" id="hx-keytitle">Top cell types</p>
-          <ul class="hx__legend hx__legend--long" id="hx-legend" aria-labelledby="hx-keytitle">
-            <li><i style="--c:#e6194b"></i>Smooth muscle</li>
-            <li><i style="--c:#3cb44b"></i>Mature enterocytes I</li>
-            <li><i style="--c:#ffe119"></i>Immature enterocytes I</li>
-            <li><i style="--c:#4363d8"></i>Mature enterocytes III</li>
-            <li><i style="--c:#f58231"></i>Mature enterocytes II</li>
-            <li><i style="--c:#911eb4"></i>Car8+ GCs II</li>
-            <li><i style="--c:#42d4f4"></i>Immature enterocytes IV</li>
-            <li><i style="--c:#f032e6"></i>Immature enterocytes III</li>
-          </ul>
-        </div>
-
-        <div class="hx__bar">
-          <!-- the control and the state it changes, together: caption above the four cases -->
-          <div class="hx__dock" id="hx-dock">
-            <p class="hx__dock-label">Four datasets, one viewer</p>
-            <p class="hx__status">
-              <span class="hx__words">
-                <span class="hx__cap"><i class="hx__case-dot" aria-hidden="true"></i><span class="hx__cap-long" data-r="caption">Xenium 5K · mouse colon · 135,232 cells</span><span class="hx__cap-short" data-r="short">Xenium 5K · mouse colon · 135k cells</span></span>
-                <span class="hx__say" data-r="line">Cells, images, outlines and molecules, in place.</span>
-              </span>
-            </p>
-            <div class="hx__cases" role="group" aria-label="Choose a dataset">
-              <button class="pv-btn pv-btn--case hx__case-btn" type="button" data-case="2d" data-state="2d" aria-pressed="true">
-                <svg aria-hidden="true"><use href="assets/pv/icons.svg#i-case-2d"/></svg>
-                <span class="pv-btn__stack"><span>2D section</span><span class="hx__sub">Xenium 5K</span></span>
-              </button>
-              <button class="pv-btn pv-btn--case hx__case-btn" type="button" data-case="3d" data-state="3d" aria-pressed="false">
-                <svg aria-hidden="true"><use href="assets/pv/icons.svg#i-case-3d"/></svg>
-                <span class="pv-btn__stack"><span>3D volume</span><span class="hx__sub">3D IMC</span></span>
-              </button>
-              <button class="pv-btn pv-btn--case hx__case-btn" type="button" data-case="atlas" data-state="atlas" aria-pressed="false">
-                <svg aria-hidden="true"><use href="assets/pv/icons.svg#i-case-atlas"/></svg>
-                <span class="pv-btn__stack"><span>Atlas</span><span class="hx__sub">Atlas</span></span>
-              </button>
-              <button class="pv-btn pv-btn--case hx__case-btn" type="button" data-case="omics" data-state="multiomics" aria-pressed="false">
-                <svg aria-hidden="true"><use href="assets/pv/icons.svg#i-case-omics"/></svg>
-                <span class="pv-btn__stack"><span>Multi-omics</span><span class="hx__sub">Spatial-Mux-seq</span></span>
-              </button>
-            </div>
           </div>
         </div>
       </div>
 
-      <div class="hx__stage" id="hx-stage">
-        <div class="hx__gl" id="hx-gl"></div>
-        <div class="hx__stillbox" id="hx-still"></div>
-        <div class="hx__marks" id="hx-groups" aria-hidden="true"></div>
-        <div class="hx__marks hx__marks--plates" id="hx-plates" aria-hidden="true"></div>
-        <div class="hx__focus" aria-hidden="true"></div>
-        <div class="hx__strip" id="hx-strip">
-          <button class="hx__motion" id="hx-motion" type="button" aria-label="Pause the motion" data-state="playing" hidden></button>
-          <p class="hx__hint" id="hx-hint" hidden><svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10a6.5 6.5 0 0 1 11.6-4"/><path d="M15.6 2.8v3.4h-3.4"/><path d="M16.5 10a6.5 6.5 0 0 1-11.6 4"/><path d="M4.4 17.2v-3.4h3.4"/></svg><span>Drag to rotate</span><kbd aria-hidden="true">←</kbd><kbd aria-hidden="true">→</kbd></p>
-          <p class="hx__fallback" id="hx-fallback" hidden>This browser cannot draw the interactive view, so a still image is shown.</p>
-          <p class="hx__scale" id="hx-scale" aria-hidden="true" data-off><i></i><span></span></p>
+      <div class="hx__deck" id="hx-deck">
+        <div class="hx__tabs" role="tablist" aria-label="Choose a case">
+          <button class="hx__tab" type="button" role="tab" id="hx-t-2d" aria-controls="hx-p-2d" aria-selected="true" tabindex="0" data-case="2d" data-state="2d"><span class="hx__tab-in"><svg class="hx__ico" aria-hidden="true"><use href="assets/pv/icons.svg#i-case-2d"/></svg><span class="hx__name">2D section</span></span><span class="hx__load" aria-hidden="true"></span></button>
+          <button class="hx__tab" type="button" role="tab" id="hx-t-3d" aria-controls="hx-p-3d" aria-selected="false" tabindex="-1" data-case="3d" data-state="3d"><span class="hx__tab-in"><svg class="hx__ico" aria-hidden="true"><use href="assets/pv/icons.svg#i-case-3d"/></svg><span class="hx__name">3D volume</span></span><span class="hx__load" aria-hidden="true"></span></button>
+          <button class="hx__tab" type="button" role="tab" id="hx-t-atlas" aria-controls="hx-p-atlas" aria-selected="false" tabindex="-1" data-case="atlas" data-state="atlas"><span class="hx__tab-in"><svg class="hx__ico" aria-hidden="true"><use href="assets/pv/icons.svg#i-case-atlas"/></svg><span class="hx__name">Atlas</span></span><span class="hx__load" aria-hidden="true"></span></button>
+          <button class="hx__tab" type="button" role="tab" id="hx-t-multiomics" aria-controls="hx-p-multiomics" aria-selected="false" tabindex="-1" data-case="omics" data-state="multiomics"><span class="hx__tab-in"><svg class="hx__ico" aria-hidden="true"><use href="assets/pv/icons.svg#i-case-omics"/></svg><span class="hx__name">Multi-omics</span></span><span class="hx__load" aria-hidden="true"></span></button>
+          <button class="hx__tab" type="button" role="tab" id="hx-t-ai" aria-controls="hx-p-ai" aria-selected="false" tabindex="-1" data-case="ai" data-state="ai"><span class="hx__tab-in"><svg class="hx__ico" aria-hidden="true"><use href="assets/pv/icons.svg#i-spark"/></svg><span class="hx__name">AI assistant</span></span><span class="hx__load" aria-hidden="true"></span></button>
+          <button class="hx__tab" type="button" role="tab" id="hx-t-store" aria-controls="hx-p-store" aria-selected="false" tabindex="-1" data-case="store" data-state="store"><span class="hx__tab-in"><svg class="hx__ico" aria-hidden="true"><use href="assets/pv/icons.svg#i-tool"/></svg><span class="hx__name">Tool Store</span></span><span class="hx__load" aria-hidden="true"></span></button>
         </div>
-        <noscript><div class="hx__stillbox"><img src="assets/data/hero/poster-2d.webp" width="1600" height="1000" alt="Still image of a Xenium 5K mouse colon section, 135,232 cells coloured by 73 cell types"></div></noscript>
+
+        <div class="hx__cols">
+          <div class="hx__col is-open" data-case="2d" data-state="2d">
+            <span class="hx__field" aria-hidden="true"></span><span class="hx__peek" aria-hidden="true"></span>
+            <div class="hx__panel" role="tabpanel" id="hx-p-2d" aria-labelledby="hx-t-2d"><div class="hx__panel-in">
+              <p class="hx__ttl" aria-hidden="true">2D section</p>
+              <p class="hx__say">Cells, images, outlines and molecules, in place.</p>
+            </div></div>
+          </div>
+          <div class="hx__col" data-case="3d" data-state="3d">
+            <span class="hx__field" aria-hidden="true"></span><span class="hx__peek" aria-hidden="true"></span>
+            <div class="hx__panel" role="tabpanel" id="hx-p-3d" aria-labelledby="hx-t-3d"><div class="hx__panel-in">
+              <p class="hx__ttl" aria-hidden="true">3D volume</p>
+              <p class="hx__say">Orbit it, cut a slab, select through it.</p>
+            </div></div>
+          </div>
+          <div class="hx__col" data-case="atlas" data-state="atlas">
+            <span class="hx__field" aria-hidden="true"></span><span class="hx__peek" aria-hidden="true"></span>
+            <div class="hx__panel" role="tabpanel" id="hx-p-atlas" aria-labelledby="hx-t-atlas"><div class="hx__panel-in">
+              <p class="hx__ttl" aria-hidden="true">Atlas</p>
+              <p class="hx__say">One live montage, statistics over every cell.</p>
+            </div></div>
+          </div>
+          <div class="hx__col" data-case="omics" data-state="multiomics">
+            <span class="hx__field" aria-hidden="true"></span><span class="hx__peek" aria-hidden="true"></span>
+            <div class="hx__panel" role="tabpanel" id="hx-p-multiomics" aria-labelledby="hx-t-multiomics"><div class="hx__panel-in">
+              <p class="hx__ttl" aria-hidden="true">Multi-omics</p>
+              <p class="hx__say">One gene across RNA, ATAC and histone marks.</p>
+            </div></div>
+          </div>
+          <div class="hx__col" data-case="ai" data-state="ai">
+            <span class="hx__field" aria-hidden="true"></span><span class="hx__peek" aria-hidden="true"></span>
+            <div class="hx__panel hx__panel--ai" role="tabpanel" id="hx-p-ai" aria-labelledby="hx-t-ai" tabindex="0"><div class="hx__panel-in">
+              <p class="hx__ttl" aria-hidden="true">AI assistant</p>
+              <p class="hx__say">A coding agent inside the viewer.</p>
+              <div class="hx-ai">
+                <div class="hx-ai__flow">
+                  <div class="hx-ai__talk">
+                    <p class="hx-ai__ask"><span class="hx-ai__who">You ask</span><q>…count how many of the selected cells are in a significant hotspot…</q></p>
+                  </div>
+                  <div class="hx-ai__thread"><p class="hx-ai__note">Your selection travels with every message.</p></div>
+                  <div class="hx-ai__agent">
+                    <svg class="hx-ai__orb" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><g fill="#EFE6D2"><circle cx="75.0" cy="8.9" r="1.0" fill-opacity="0.08"/><circle cx="70.2" cy="13.3" r="1.3" fill-opacity="0.22"/><circle cx="57.7" cy="16.0" r="1.3" fill-opacity="0.22"/><circle cx="42.3" cy="16.0" r="1.3" fill-opacity="0.22"/><circle cx="29.8" cy="13.3" r="1.3" fill-opacity="0.22"/><circle cx="25.0" cy="8.9" r="1.3" fill-opacity="0.22"/><circle cx="29.8" cy="4.5" r="1.0" fill-opacity="0.08"/><circle cx="42.3" cy="1.7" r="1.0" fill-opacity="0.08"/><circle cx="57.7" cy="1.7" r="1.0" fill-opacity="0.08"/><circle cx="70.2" cy="4.5" r="1.0" fill-opacity="0.08"/><circle cx="92.6" cy="28.6" r="1.3" fill-opacity="0.22"/><circle cx="86.8" cy="33.1" r="1.3" fill-opacity="0.22"/><circle cx="76.1" cy="36.6" r="1.3" fill-opacity="0.22"/><circle cx="61.8" cy="38.7" r="1.3" fill-opacity="0.22"/><circle cx="46.0" cy="39.2" r="1.3" fill-opacity="0.22"/><circle cx="30.7" cy="37.9" r="1.3" fill-opacity="0.22"/><circle cx="18.0" cy="35.0" r="1.3" fill-opacity="0.22"/><circle cx="9.6" cy="30.9" r="1.3" fill-opacity="0.22"/><circle cx="6.7" cy="26.2" r="1.3" fill-opacity="0.22"/><circle cx="9.6" cy="21.6" r="1.0" fill-opacity="0.08"/><circle cx="18.0" cy="17.5" r="1.0" fill-opacity="0.08"/><circle cx="30.7" cy="14.6" r="1.0" fill-opacity="0.08"/><circle cx="46.0" cy="13.3" r="1.0" fill-opacity="0.08"/><circle cx="61.8" cy="13.8" r="1.0" fill-opacity="0.08"/><circle cx="76.1" cy="15.9" r="1.0" fill-opacity="0.08"/><circle cx="86.8" cy="19.4" r="1.0" fill-opacity="0.08"/><circle cx="92.6" cy="23.9" r="1.0" fill-opacity="0.08"/><circle cx="100.0" cy="50.0" r="1.0" fill-opacity="0.08"/><circle cx="97.6" cy="54.6" r="1.3" fill-opacity="0.22"/><circle cx="90.5" cy="58.8" r="1.3" fill-opacity="0.22"/><circle cx="79.4" cy="62.1" r="1.3" fill-opacity="0.22"/><circle cx="65.5" cy="64.3" r="1.3" fill-opacity="0.22"/><circle cx="50.0" cy="65.0" r="1.3" fill-opacity="0.22"/><circle cx="34.5" cy="64.3" r="1.3" fill-opacity="0.22"/><circle cx="20.6" cy="62.1" r="1.3" fill-opacity="0.22"/><circle cx="9.5" cy="58.8" r="1.3" fill-opacity="0.22"/><circle cx="2.4" cy="54.6" r="1.3" fill-opacity="0.22"/><circle cx="0.0" cy="50.0" r="1.3" fill-opacity="0.22"/><circle cx="2.4" cy="45.4" r="1.0" fill-opacity="0.08"/><circle cx="9.5" cy="41.2" r="1.0" fill-opacity="0.08"/><circle cx="20.6" cy="37.9" r="1.0" fill-opacity="0.08"/><circle cx="34.5" cy="35.7" r="1.0" fill-opacity="0.08"/><circle cx="50.0" cy="35.0" r="1.0" fill-opacity="0.08"/><circle cx="65.5" cy="35.7" r="1.0" fill-opacity="0.08"/><circle cx="79.4" cy="37.9" r="1.0" fill-opacity="0.08"/><circle cx="90.5" cy="41.2" r="1.0" fill-opacity="0.08"/><circle cx="97.6" cy="45.4" r="1.0" fill-opacity="0.08"/><circle cx="92.6" cy="76.1" r="1.3" fill-opacity="0.22"/><circle cx="86.8" cy="80.6" r="1.3" fill-opacity="0.22"/><circle cx="76.1" cy="84.1" r="1.3" fill-opacity="0.22"/><circle cx="61.8" cy="86.2" r="1.3" fill-opacity="0.22"/><circle cx="46.0" cy="86.7" r="1.3" fill-opacity="0.22"/><circle cx="30.7" cy="85.4" r="1.3" fill-opacity="0.22"/><circle cx="18.0" cy="82.5" r="1.3" fill-opacity="0.22"/><circle cx="9.6" cy="78.4" r="1.3" fill-opacity="0.22"/><circle cx="6.7" cy="73.8" r="1.3" fill-opacity="0.22"/><circle cx="9.6" cy="69.1" r="1.0" fill-opacity="0.08"/><circle cx="18.0" cy="65.0" r="1.0" fill-opacity="0.08"/><circle cx="30.7" cy="62.1" r="1.0" fill-opacity="0.08"/><circle cx="46.0" cy="60.8" r="1.0" fill-opacity="0.08"/><circle cx="61.8" cy="61.3" r="1.0" fill-opacity="0.08"/><circle cx="76.1" cy="63.4" r="1.0" fill-opacity="0.08"/><circle cx="86.8" cy="66.9" r="1.0" fill-opacity="0.08"/><circle cx="92.6" cy="71.4" r="1.0" fill-opacity="0.08"/><circle cx="75.0" cy="91.1" r="1.0" fill-opacity="0.08"/><circle cx="70.2" cy="95.5" r="1.3" fill-opacity="0.22"/><circle cx="57.7" cy="98.3" r="1.3" fill-opacity="0.22"/><circle cx="42.3" cy="98.3" r="1.3" fill-opacity="0.22"/><circle cx="29.8" cy="95.5" r="1.3" fill-opacity="0.22"/><circle cx="25.0" cy="91.1" r="1.3" fill-opacity="0.22"/><circle cx="29.8" cy="86.7" r="1.0" fill-opacity="0.08"/><circle cx="42.3" cy="84.0" r="1.0" fill-opacity="0.08"/><circle cx="57.7" cy="84.0" r="1.0" fill-opacity="0.08"/><circle cx="70.2" cy="86.7" r="1.0" fill-opacity="0.08"/></g></svg>
+                    <ul class="hx-ai__groups" aria-label="What the agent works with">
+                      <li style="--g:#5B8CFF"><b>See</b><span>Reads datasets, the live view, past results.</span></li>
+                      <li style="--g:#FF8A3D"><b>Do</b><span>Runs an installed tool.</span></li>
+                      <li style="--g:#A77BFF"><b>Steer</b><span>Sets the camera, tab, paint and selection, if you allow it.</span></li>
+                      <li style="--g:#6FE0BD"><b>Show</b><span>Publishes to the notebook.</span></li>
+                    </ul>
+                  </div>
+                </div>
+                <figure class="hx-ai__result">
+                  <span class="hx-ai__pic"><img data-src="assets/media/hero/ai-result.webp" width="880" height="663" decoding="async" alt="One field of a mouse colon section, each cell filled by the Getis-Ord Gi* value of Cd79a that the agent’s Expression Hotspots call returned, warm where the gene clusters, under the cyan outline of the selected cells"></span>
+                  <figcaption>What its Expression Hotspots call returned: where <span translate="no">Cd79a</span> clusters, with the selection outlined.</figcaption>
+                </figure>
+                <div class="hx-ai__runs">
+                  <ul class="hx-ai__chips" aria-label="Runtimes" translate="no">
+                    <li>Claude Code</li>
+                    <li>ChatGPT Codex</li>
+                    <li>Google Antigravity</li>
+                  </ul>
+                  <p>Your runtime, your account. Answers are model output; the notebook shows what ran.</p>
+                </div>
+              </div>
+            </div></div>
+          </div>
+          <div class="hx__col" data-case="store" data-state="store">
+            <span class="hx__field" aria-hidden="true"></span><span class="hx__peek" aria-hidden="true"></span>
+            <div class="hx__panel hx__panel--store" role="tabpanel" id="hx-p-store" aria-labelledby="hx-t-store"><div class="hx__panel-in">
+              <p class="hx__ttl" aria-hidden="true">Tool Store</p>
+              <p class="hx__say">Analyses that anyone can add, each one Python file and a manifest.</p>
+              <ul class="hx-store" aria-label="Tools in the Tool Store">
+                <li><a class="hx-store__tool" href="https://store.pointillviz.com/tools/categorical-chords/"><span class="hx-store__art"><img data-src="assets/media/hero/tools/categorical-chords.webp" width="384" height="224" decoding="async" alt=""></span><span class="hx-store__name" translate="no">Categorical Chords</span></a></li>
+                <li><a class="hx-store__tool" href="https://store.pointillviz.com/tools/celltype-cooccurrence/"><span class="hx-store__art"><img data-src="assets/media/hero/tools/celltype-cooccurrence.webp" width="384" height="224" decoding="async" alt=""></span><span class="hx-store__name" translate="no"><span class="nw">Cell-Type</span> <span class="nw">Co-occurrence</span></span></a></li>
+                <li><a class="hx-store__tool" href="https://store.pointillviz.com/tools/celltype-percolation/"><span class="hx-store__art"><img data-src="assets/media/hero/tools/celltype-percolation.webp" width="384" height="224" decoding="async" alt=""></span><span class="hx-store__name" translate="no"><span class="nw">Cell-Type</span> Percolation</span></a></li>
+                <li><a class="hx-store__tool" href="https://store.pointillviz.com/tools/conditional-contact-odds/"><span class="hx-store__art"><img data-src="assets/media/hero/tools/conditional-contact-odds.webp" width="384" height="224" decoding="async" alt=""></span><span class="hx-store__name" translate="no">Conditional Contact Odds</span></a></li>
+                <li><a class="hx-store__tool" href="https://store.pointillviz.com/tools/expression-hotspots/"><span class="hx-store__art"><img data-src="assets/media/hero/tools/expression-hotspots.webp" width="384" height="224" decoding="async" alt=""></span><span class="hx-store__name" translate="no">Expression Hotspots</span></a></li>
+                <li><a class="hx-store__tool" href="https://store.pointillviz.com/tools/interface-coherence/"><span class="hx-store__art"><img data-src="assets/media/hero/tools/interface-coherence.webp" width="384" height="224" decoding="async" alt=""></span><span class="hx-store__name" translate="no">Interface Coherence</span></a></li>
+                <li><a class="hx-store__tool" href="https://store.pointillviz.com/tools/local-density/"><span class="hx-store__art"><img data-src="assets/media/hero/tools/local-density.webp" width="384" height="224" decoding="async" alt=""></span><span class="hx-store__name" translate="no">Local Cell Density</span></a></li>
+                <li><a class="hx-store__tool" href="https://store.pointillviz.com/tools/neighborhood-composition/"><span class="hx-store__art"><img data-src="assets/media/hero/tools/neighborhood-composition.webp" width="384" height="224" decoding="async" alt=""></span><span class="hx-store__name" translate="no">Neighborhood Composition</span></a></li>
+                <li><a class="hx-store__tool" href="https://store.pointillviz.com/tools/ripley-cross-l/"><span class="hx-store__art"><img data-src="assets/media/hero/tools/ripley-cross-l.webp" width="384" height="224" decoding="async" alt=""></span><span class="hx-store__name" translate="no">Ripley’s <span class="nw">Cross-L</span></span></a></li>
+                <li><a class="hx-store__tool" href="https://store.pointillviz.com/tools/spatial-scale-spectrum/"><span class="hx-store__art"><img data-src="assets/media/hero/tools/spatial-scale-spectrum.webp" width="384" height="224" decoding="async" alt=""></span><span class="hx-store__name" translate="no">Spatial Scale Spectrum</span></a></li>
+                <li><a class="hx-store__tool" href="https://store.pointillviz.com/tools/tissue-permeability/"><span class="hx-store__art"><img data-src="assets/media/hero/tools/tissue-permeability.webp" width="384" height="224" decoding="async" alt=""></span><span class="hx-store__name" translate="no">Tissue Permeability</span></a></li>
+                <li><a class="hx-store__tool" href="https://store.pointillviz.com/tools/vector-field/"><span class="hx-store__art"><img data-src="assets/media/hero/tools/vector-field.webp" width="384" height="224" decoding="async" alt=""></span><span class="hx-store__name" translate="no">Vector Field</span></a></li>
+              </ul>
+              <a class="hx-store__all" href="https://store.pointillviz.com/">Open the Tool Store<svg aria-hidden="true"><use href="assets/pv/icons.svg#i-arrow-right"/></svg></a>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- one canvas over the whole deck: the cells fly from one field to the next -->
+        <div class="hx__stage" id="hx-stage">
+          <div class="hx__gl" id="hx-gl"></div>
+          <div class="hx__stillbox" id="hx-still"></div>
+          <div class="hx__marks" id="hx-groups" aria-hidden="true"></div>
+          <div class="hx__marks hx__marks--plates" id="hx-plates" aria-hidden="true"></div>
+          <div class="hx__focus" aria-hidden="true"></div>
+          <div class="hx__strip" id="hx-strip">
+            <button class="hx__motion" id="hx-motion" type="button" aria-label="Pause the motion" data-state="playing" hidden></button>
+            <p class="hx__hint" id="hx-hint" hidden><svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10a6.5 6.5 0 0 1 11.6-4"/><path d="M15.6 2.8v3.4h-3.4"/><path d="M16.5 10a6.5 6.5 0 0 1-11.6 4"/><path d="M4.4 17.2v-3.4h3.4"/></svg><span>Drag to rotate</span><kbd aria-hidden="true">←</kbd><kbd aria-hidden="true">→</kbd></p>
+            <p class="hx__fallback" id="hx-fallback" hidden>This browser cannot draw the interactive view, so a still image is shown.</p>
+            <p class="hx__scale" id="hx-scale" aria-hidden="true" data-off><i></i><span></span></p>
+          </div>
+          <noscript><div class="hx__stillbox"><img src="assets/data/hero/poster-2d.webp" width="1600" height="1000" alt="Still image of a Xenium 5K mouse colon section, 135,232 cells coloured by 73 cell types"></div></noscript>
+        </div>
       </div>
-      <div class="hx__scrim" aria-hidden="true"></div>
 
       <p class="pv-sr-only" id="hx-live" aria-live="polite"></p>
       <p class="pv-sr-only" id="hx-alt">An interactive point cloud drawn from real cells, in four cases: a Xenium 5K mouse colon section (135,232 cells, 73 cell types); 3D imaging mass cytometry of a HER2⁺ breast carcinoma (108,486 cells, 25 proteins, 17 cell types); an atlas of many sections; and one gene, Pde10a, in RNA, ATAC, H3K27ac and H3K27me3 of a Spatial-Mux-seq mouse brain section (9,686 spots). Cells keep their datasets' own cell-type colours.</p>
       <p class="pv-sr-only" id="hx-keys">Drag to rotate, or use the arrow keys.</p>
-      <div class="hx__tip" id="hx-tip" aria-hidden="true"><b><i></i><span></span></b><small></small></div>
+      <div class="hx__tip" id="hx-tip" aria-hidden="true"><b><i></i><span></span></b></div>
     </section>
 
     <!-- 2 · Workspace: data, views and analyses (Fig. 1a, b) -->
