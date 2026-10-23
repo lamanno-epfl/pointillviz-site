@@ -1,14 +1,16 @@
 /* pointillviz.com · the homepage (an ES module, no dependencies)
  * 0 page scale: above 1440 × 900 the page is drawn k times larger (home.css, section 0)
- * 1 the hero: real cells of four datasets (pointcloud.js), its case dock, readout, colour key,
- *   the names on the cloud, the scale bar, the cell under the pointer, still / play, a case
- *   that is still loading, and a one-time tour of the four cases when the page sits idle
+ * 1 the hero: six cases as colour fields (2D, 3D, atlas, multi-omics, the assistant, the
+ *   store), one open at a time; real cells of the four datasets (pointcloud.js) fly into the
+ *   open field; the names on the cloud, the scale bar, the cell under the pointer, still /
+ *   play, a case that is still loading, and a one-time tour of the six when the page sits idle
  * 2 the workspace: tabs Data / Views / Analyses, arrow keys across the twelve pictures,
  *   a tab's pictures load when it is hovered, focused or chosen
  * 3 moving pictures: play when on screen, pause off screen, a pause button each
  * 4 the 12 tools and the assistant's 13 MCP tools
  * 5 the section index, entrances below the fold
- * 6 the address: #3d, #atlas, #multiomics name a case; #data, #views, #analyses a tab
+ * 6 the address: #3d, #atlas, #multiomics, #assistant, #tool-store name a case; #data,
+ *   #views, #analyses a tab
  */
 import { PointCloud } from './pointcloud.js';
 
@@ -17,8 +19,6 @@ const $$ = (s, c = document) => Array.from(c.querySelectorAll(s));
 const root = document.documentElement;
 const reduceMQ = matchMedia('(prefers-reduced-motion: reduce)');
 const reduced = () => reduceMQ.matches;
-const wideMQ = matchMedia('(min-width: 900px) and (min-height: 500px) and (min-aspect-ratio: 9/10)');
-const midMQ = matchMedia('(max-width: 1099.98px)');
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';    // --pv-ease-out
 
 /* ───────────────────────────── 0 · page scale ───────────────────────────── */
@@ -33,57 +33,22 @@ function scale() {
 }
 scale();
 
-/* ───────────────────────────── 1 · the instrument ───────────────────────── */
+/* ───────────────────────────── 1 · the six cases ───────────────────────── */
 
-// The words for each case (brief/CONTENT.md A3) and the numbers the brief lets us print.
-const CASES = {
-  '2d': {
-    tone: '2d', name: '2D section', noun: '2D section',
-    caption: 'Xenium 5K · mouse colon · 135,232 cells',
-    short: 'Xenium 5K · mouse colon · 135k cells',
-    line: 'Cells, images, outlines and molecules, in place.',
-    nums: [[135232, 'cells'], [73, 'cell types']],
-    key: 'Top cell types', detail: 'Xenium 5K · mouse colon',
-  },
-  '3d': {
-    tone: '3d', name: '3D volume', noun: '3D volume',
-    caption: '3D imaging mass cytometry · HER2⁺ breast carcinoma · 108,486 cells',
-    short: '3D IMC · breast carcinoma · 108k cells',
-    line: 'Orbit it, cut a slab, select through it.',
-    nums: [[108486, 'cells'], [25, 'proteins'], [17, 'cell types']],
-    key: 'Cell types', detail: 'HER2⁺ breast carcinoma',
-  },
-  atlas: {
-    tone: 'atlas', name: 'Atlas', noun: 'atlas',
-    caption: 'Mouse colon · several sections · [removed] cells',
-    short: 'Mouse colon · several sections · [removed] cells',
-    line: 'One live montage, statistics over every cell.',
-    nums: [[39, 'sections'], [11443143, 'cells']],
-    key: 'Top cell types', detail: 'One section',
-  },
-  multiomics: {
-    tone: 'omics', name: 'Multi-omics', noun: 'multi-omics section',
-    caption: 'Spatial‑Mux‑seq · mouse brain · 9,686 spots',
-    short: 'Spatial‑Mux‑seq · mouse brain · 9,686 spots',
-    line: 'Pde10a in RNA, ATAC, H3K27ac and H3K27me3.',
-    nums: [[9686, 'spots'], [4, 'modalities']],
-    key: 'Four modalities', detail: 'Spatial‑Mux‑seq · mouse brain',
-  },
-};
-const ORDER = ['2d', '3d', 'atlas', 'multiomics'];
+// The six cases, in the deck's order. Four draw real cells (pointcloud.js); the assistant and
+// the store are pages of their own. A tab names its case and nothing more: no dataset details
+// and no numbers (HOMEPAGE_CHANGES items 1–3); each case's line is in its panel.
+const ORDER = ['2d', '3d', 'atlas', 'multiomics', 'ai', 'store'];
+const DATA = new Set(['2d', '3d', 'atlas', 'multiomics']);
+const TONE = { '2d': '2d', '3d': '3d', atlas: 'atlas', multiomics: 'omics', ai: 'ai', store: 'store' };
+const NOUN = { '2d': '2D section', '3d': '3D volume', atlas: 'atlas', multiomics: 'multi-omics section' };
+const POSTER = (id) => `assets/data/hero/poster-${id}.webp`;
 
 const hero = $('.hx');
+const deck = $('#hx-deck');
 const stage = $('#hx-stage');
 const glBox = $('#hx-gl');
-const readout = $('#hx-readout');
-const dock = $('#hx-dock');
-const status = $('.hx__status', dock);
-const capLong = $('[data-r="caption"]', dock);
-const capShort = $('[data-r="short"]', dock);
-const sayLine = $('[data-r="line"]', dock);
-const legend = $('#hx-legend');
-const nums = $('#hx-nums');
-const keyTitle = $('#hx-keytitle');
+const tablist = $('.hx__tabs');
 const hint = $('#hx-hint');
 const scaleBar = $('#hx-scale');
 const motion = $('#hx-motion');
@@ -91,17 +56,19 @@ const tip = $('#hx-tip');
 const live = $('#hx-live');
 const groupsBox = $('#hx-groups');
 const platesBox = $('#hx-plates');
-const washes = $$('.hx__wash > i');
-const buttons = $$('.hx__case-btn');
-const buttonFor = (id) => buttons.find((b) => b.dataset.state === id);
-const fmt = (n) => n.toLocaleString('en-US');
+const caseTabs = $$('.hx__tab');
+const cols = $$('.hx__col');
+const tabFor = (id) => caseTabs.find((b) => b.dataset.state === id);
+const colFor = (id) => cols.find((c) => c.dataset.state === id);
+const nameOf = (id) => tabFor(id).querySelector('.hx__name').textContent;
+const lineOf = (id) => colFor(id).querySelector('.hx__say').textContent;
+// side by side (columns) on wide windows, stacked (rows) on phones and portrait screens
+const colsMQ = matchMedia('(min-width: 900px) and (min-aspect-ratio: 1/1)');
 
 let pc = null;
-let shown = '2d';       // the case whose words are on screen: its cells are drawn, or on their way in
-let asked = '2d';       // the case pressed last (it may still be loading)
+let open = '2d';        // the case whose field is open
+let drawn = '2d';       // the data case whose cells are drawn, or on their way in
 let formed = false;     // the first case has condensed
-let quietFor = null;    // a case the tour shows: its arrival is not announced
-let manifest = null;
 let canvasFocus = false;
 
 // A custom property on the hero is written only when it changes: every write restyles the hero.
@@ -117,214 +84,207 @@ function arrive(el, { delay = 0, from = 'translateY(4px)', dur = 300 } = {}) {
   if (reduced() || !el.animate) return;
   el.animate([{ opacity: 0, transform: from }, { opacity: 1, transform: 'none' }], { duration: dur, delay, easing: EASE, fill: 'backwards' });
 }
-function swap(el, text) {
-  if (!el || el.textContent === text) return;
-  el.textContent = text;
-  arrive(el);
-}
-const put = (el, text) => { if (el.textContent !== text) el.textContent = text; };
 
-// the counts change to the new case's values (no counting up from zero)
-function setNums(id, animate) {
-  const c = CASES[id];
-  nums.replaceChildren(...c.nums.map(([n, unit]) => {
-    const div = document.createElement('div');
-    const dt = document.createElement('dt');
-    dt.textContent = unit;
-    const dd = document.createElement('dd');
-    dd.className = 'pv-num';
-    dd.textContent = fmt(n);
-    div.append(dt, dd);
-    return div;
-  }));
-  if (animate) [...nums.children].forEach((d) => arrive(d));
-}
+/* -- geometry ----------------------------------------------------------------- */
 
-// Every case's words (caption and line) sit unseen under the words on screen, in the same grid
-// cell, so the dock is as tall as the longest of them for every case: nothing under it moves
-// when the case changes, by tour or by tap. Any room to spare falls under the words.
-function reserveWords() {
-  const words = $('.hx__words', dock);
-  if (!words) return;
-  words.after(...ORDER.map((id) => {
-    const s = words.cloneNode(true);
-    s.classList.add('hx__sizer');
-    s.setAttribute('aria-hidden', 'true');
-    s.querySelectorAll('[data-r]').forEach((el) => { el.textContent = CASES[id][el.dataset.r]; el.removeAttribute('data-r'); });
-    return s;
-  }));
-}
-
-function legendFor(id, animate = true) {
-  const st = manifest && manifest.states.find((s) => s.id === id);
-  if (!st) return;
-  // a key with long names keeps to one column where the readout is narrow (home.css)
-  legend.classList.toggle('hx__legend--long', st.legend.some((l) => l.name.length > 18));
-  legend.replaceChildren(...st.legend.map((l) => {
-    const li = document.createElement('li');
-    const dot = document.createElement('i');
-    dot.style.setProperty('--c', l.color);
-    li.append(dot, document.createTextNode(l.name));
-    if (l.detail) {
-      const small = document.createElement('small');
-      small.textContent = l.detail;
-      li.append(small);
-    }
-    return li;
-  }));
-  if (animate) [...legend.children].forEach((li, i) => arrive(li, { delay: i * 30, from: 'translateX(5px)', dur: 360 }));
-}
-
-// the case colour under the cloud: two layers, the new one fades in over the old (opacity only)
-let washOn = 0;
-function washTo(id, instant = false) {
-  if (!washes.length) return;
-  const next = washes[washOn ^ 1], prev = washes[washOn];
-  next.style.setProperty('--c', `var(--pv-case-${CASES[id].tone})`);
-  const f = (frames && frames[id]) || frameBase;
-  if (f) {
-    const s = stage.getBoundingClientRect(), h = hero.getBoundingClientRect();
-    const cx = s.left - h.left + (f.left + (s.width - f.right)) / 2;
-    const cy = s.top - h.top + (f.top + (s.height - f.bottom)) / 2;
-    next.style.setProperty('--x', `${(cx / h.width * 100).toFixed(1)}%`);
-    next.style.setProperty('--y', `${(cy / h.height * 100).toFixed(1)}%`);
+// A probe holds the CSS's own sizes: a stripe (--hx-stripe) and the open case's head, so the
+// script reads them as the layout resolves them, at every breakpoint and page scale.
+let probe = null;
+function sizes() {
+  if (!probe) {
+    probe = document.createElement('span');
+    probe.className = 'hx__probe';
+    probe.setAttribute('aria-hidden', 'true');
+    deck.append(probe);
   }
-  if (instant) washes.forEach((w) => { w.style.transition = 'none'; });
-  next.classList.add('is-on');
-  prev.classList.remove('is-on');
+  const p = probe.getBoundingClientRect();
+  return { stripe: p.width || 52, head: p.height || 86 };
+}
+
+// The rect a case's field takes once a switch has settled, in px of the deck: every case before
+// it is a stripe, and it takes the rest. Nothing is measured on the moving columns.
+function geometry(id) {
+  const r = deck.getBoundingClientRect();
+  const { stripe, head } = sizes();
+  const across = colsMQ.matches;
+  const i = ORDER.indexOf(id);
+  const size = (across ? r.width : r.height) - (ORDER.length - 1) * stripe;
+  const o = across ? { x: i * stripe, y: 0, w: size, h: r.height } : { x: 0, y: i * stripe, w: r.width, h: size };
+  return { W: r.width, H: r.height, head, across, o };
+}
+
+// Where a data case's cells rest: its open field, under its name and line, above a strip for
+// still / play, the 3D hint and the scale bar. The multi-omics plates keep room for their names
+// on the right, the atlas above its rows. The same rect places the focus ring and the still.
+// The cells start under the case's line, however many lines it wraps to: its bottom is read
+// inside its panel, whose own layout is final even while its field is still opening.
+function headOf(id, g) {
+  const say = colFor(id).querySelector('.hx__say');
+  const panel = say && say.closest('.hx__panel');
+  if (!panel) return g.head;
+  const b = say.getBoundingClientRect().bottom - panel.getBoundingClientRect().top;
+  return Math.max(g.head, Math.round(b + 12 * K));
+}
+function place(id) {
+  const g = geometry(id), o = g.o, k = K;
+  const stripH = Math.round(30 * k);
+  const padX = Math.round((g.across ? 22 : 10) * k);
+  const f = {
+    left: Math.round(o.x + padX),
+    right: Math.round(g.W - (o.x + o.w) + padX),
+    top: Math.round(o.y + headOf(id, g)),
+    bottom: Math.round(g.H - (o.y + o.h) + stripH + 14 * k),
+  };
+  if (id === 'multiomics') f.right += Math.round((g.across ? 96 : 80) * k);
+  if (id === 'atlas') f.top += Math.round(16 * k);
+  setVar('--f-l', `${f.left}px`);
+  setVar('--f-t', `${f.top}px`);
+  setVar('--f-r', `${f.right}px`);
+  setVar('--f-b', `${f.bottom}px`);
+  const sx = Math.round((g.across ? 16 : 10) * k);
+  setVar('--s-l', `${Math.round(o.x + sx)}px`);
+  setVar('--s-r', `${Math.round(g.W - (o.x + o.w) + sx)}px`);
+  setVar('--s-t', `${Math.round(o.y + o.h - stripH - 10 * k)}px`);
+  hero.classList.add('is-framed');       // the strip shows once it is in place (home.css)
+  return f;
+}
+
+/* -- the switch --------------------------------------------------------------- */
+
+// The fields move; each case's words stay where they will rest: the opening case's panel is
+// pinned to the edge of its field that does not move (the right or bottom one when it opens
+// after the case that closes), so its content is uncovered, not slid. Its name turns from the
+// stripe's label into the field's title as the field opens.
+function openCase(id, { instant = false } = {}) {
+  const prev = open;
+  open = id;
+  const fwd = ORDER.indexOf(id) > ORDER.indexOf(prev);
+  hero.dataset.open = id;
+  hero.dataset.case = TONE[id];
+  if (instant) deck.classList.add('is-instant');
+  cols.forEach((c) => {
+    const s = c.dataset.state;
+    if (s === id) c.dataset.from = fwd ? 'end' : 'start';
+    else if (s === prev) c.dataset.from = fwd ? 'start' : 'end';
+    c.classList.toggle('is-open', s === id);
+  });
+  caseTabs.forEach((t) => {
+    const on = t.dataset.state === id;
+    t.setAttribute('aria-selected', String(on));
+    t.tabIndex = on ? 0 : -1;
+  });
   if (instant) {
-    washes.forEach((w) => getComputedStyle(w).opacity);   // take the new opacity without a fade
-    washes.forEach((w) => { w.style.transition = ''; });
+    void deck.offsetWidth;               // take the new sizes without a transition
+    deck.classList.remove('is-instant');
+    return;
   }
-  washOn ^= 1;
+  if (reduced() || prev === id) return;
+  // the closing case's stripe label comes back as its field narrows
+  const dur = parseFloat(getComputedStyle(hero).getPropertyValue('--hx-dur')) || 720;
+  arrive(tabFor(prev).querySelector('.hx__tab-in'), { delay: dur * 0.3, from: colsMQ.matches ? 'translateY(12px)' : 'translateX(-10px)', dur: 340 });
 }
 
-// the dock's words for the case on screen
-function words(id, animate = true) {
-  const c = CASES[id];
-  delete status.dataset.case;
-  const set = animate ? swap : put;
-  set(capLong, c.caption);
-  set(capShort, c.short);
-  set(sayLine, c.line);
-}
-
-function press(id) {
-  buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.state === id)));
-}
-
-// The case's cells have started to arrive on screen: now its words, counts and key follow.
-function describe(id, { first = false, quiet = false } = {}) {
-  const c = CASES[id];
-  shown = id;
-  hero.dataset.case = c.tone;
-  washTo(id, first);
-  words(id, !first);
-  (first ? put : swap)(keyTitle, c.key);
-  setNums(id, !first);
-  if (!first) legendFor(id);
-  if (!first && !quiet) live.textContent = `${c.name}: ${c.caption}. ${c.line}`;
+// The visitor (or the tour) picks a case. The fields answer at once; the cells follow.
+function choose(id, { touring = false } = {}) {
+  if (!ORDER.includes(id) || id === open) return;
+  if (!touring) { endTour(); writeHash(CASE_HASH[id]); }
+  openCase(id);
+  clearBusy();
+  if (DATA.has(id)) toCells(id);
+  else awayCells(id);
   showHint();
+  if (!touring) { live.textContent = `${nameOf(id)}. ${lineOf(id)}`; reveal(id); }
 }
 
-function showHint() {
-  hint.hidden = !pc || pc.fallback || !(shown === '3d' || canvasFocus);
+// Stacked on a phone, the opened case may reach past the screen's edge: bring all of it in
+// (where it will rest, not where its row is while it grows).
+function reveal(id) {
+  if (colsMQ.matches) return;
+  const g = geometry(id), r = deck.getBoundingClientRect();
+  const top = r.top + g.o.y, bottom = top + g.o.h;
+  const bar = topbarBottom() + 8;
+  let dy = 0;
+  if (bottom > innerHeight - 8) dy = bottom - innerHeight + 12;
+  if (top - dy < bar) dy = top - bar;
+  if (Math.abs(dy) > 2) scrollBy({ top: dy, behavior: reduced() ? 'auto' : 'smooth' });
+}
+const topbarEl = $('.pv-topbar');
+const topbarBottom = () => (topbarEl ? topbarEl.getBoundingClientRect().bottom : 0);
+
+// a data case: the cells come back if they had stepped aside, and fly into its field
+let awayT = 0;
+function toCells(id) {
+  clearTimeout(awayT);
+  hero.classList.remove('is-away');
+  if (!pc) { showStill(id); return; }
+  if (pc.paused) pc.resume();
+  const f = place(id);
+  if (pc.fallback) {
+    pc.setFrame(f, { frames: null });
+    pc.setState(id);
+    drawn = id;
+    return;
+  }
+  if (id !== pc.state && !pc.loaded(id)) setBusy(id);
+  drawn = id;
+  pc.setView(id, f, { frames: null, glide: reduced() ? 0 : 900 }).then((done) => {
+    if (done) { drawScale(pc); placeGroups(pc); placePlates(pc); }
+  }).catch((err) => { console.warn(err); failed(id); });
 }
 
-/* A case that is still on its way. The pressed button says so at once (aria-busy); if the
- * wait is long enough to see, its outline fills as the particles arrive and the caption
- * says what is loading. A case that arrives within a moment shows none of this. */
+// the assistant or the store: the cells step aside, and hold still while they are away
+function awayCells(id) {
+  hero.classList.add('is-away');
+  showTip(null);
+  warmCase(id, { asked: true });
+  clearTimeout(awayT);
+  awayT = setTimeout(() => { if (pc && !pc.fallback && !DATA.has(open)) pc.pause(); }, 260);
+}
+
+/* -- loading ------------------------------------------------------------------ */
+
+// A data case still on its way: its tab says so at once (aria-busy); if the wait is long
+// enough to see, a line along the top of its field fills as its cells arrive.
 let busyT = 0;
 let busyOn = null;
-const SVGNS = 'http://www.w3.org/2000/svg';
-function ring(b, p) {
-  let svg = b.querySelector('.hx__load');
-  if (!svg) {
-    svg = document.createElementNS(SVGNS, 'svg');
-    svg.setAttribute('class', 'hx__load');
-    svg.setAttribute('aria-hidden', 'true');
-    svg.setAttribute('focusable', 'false');
-    const r = document.createElementNS(SVGNS, 'rect');
-    r.setAttribute('pathLength', '100');
-    svg.append(r);
-    b.append(svg);
-  }
-  const cs = getComputedStyle(b), r = svg.firstChild;
-  const w = parseFloat(cs.width) || b.offsetWidth, h = parseFloat(cs.height) || b.offsetHeight;   // layout px
-  const rad = parseFloat(cs.borderTopLeftRadius) || 10;
-  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-  r.setAttribute('x', '0.75');
-  r.setAttribute('y', '0.75');
-  r.setAttribute('width', String(Math.max(0, w - 1.5)));
-  r.setAttribute('height', String(Math.max(0, h - 1.5)));
-  r.setAttribute('rx', String(Math.max(0, rad - 0.75)));
+function progressTo(id, p) {
+  const t = tabFor(id);
   const known = p != null && p > 0.005;
-  svg.classList.toggle('is-known', known);
-  r.style.strokeDasharray = known ? `${(p * 100).toFixed(1)} 100` : '';
-}
-function loadingWords(id, p) {
-  const t = `Loading the ${CASES[id].noun}…${p > 0.02 && p < 1 ? ` ${Math.round(p * 100)}%` : ''}`;
-  put(capLong, t);
-  put(capShort, t);
+  t.classList.toggle('is-known', known);
+  if (known) t.style.setProperty('--p', Math.min(1, p).toFixed(3));
 }
 function setBusy(id) {
   clearBusy();
-  const b = buttonFor(id);
-  b.setAttribute('aria-busy', 'true');
+  const t = tabFor(id);
+  t.setAttribute('aria-busy', 'true');
   busyT = setTimeout(() => {
-    if (asked !== id || !pc || pc.loaded(id)) return;
+    if (open !== id || !pc || pc.loaded(id)) return;
     busyOn = id;
-    const p = pc.progress(id);
-    b.classList.add('is-loading');
-    dock.classList.add('is-loading');
-    status.dataset.case = CASES[id].tone;
-    loadingWords(id, p);
-    swap(sayLine, CASES[id].line);              // what is on its way, under how far it has come
-    ring(b, p);
-    live.textContent = `Loading the ${CASES[id].noun}.`;
+    t.classList.add('is-loading');
+    progressTo(id, pc.progress(id));
+    live.textContent = `Loading the ${NOUN[id]}.`;
   }, 160);
 }
 function clearBusy() {
   clearTimeout(busyT);
   busyOn = null;
-  buttons.forEach((b) => { b.removeAttribute('aria-busy'); b.classList.remove('is-loading'); });
-  dock.classList.remove('is-loading');
+  caseTabs.forEach((t) => { t.removeAttribute('aria-busy'); t.classList.remove('is-loading', 'is-known'); });
 }
 function onProgress(id, p) {
-  if (id !== busyOn) return;
-  loadingWords(id, p);
-  ring(buttonFor(id), p);
+  if (id === busyOn) progressTo(id, p);
 }
 let failT = 0;
 function failed(id) {
-  if (asked !== id) return;
+  if (open !== id) return;
   clearBusy();
-  asked = shown;
-  press(shown);
-  writeHash(CASE_HASH[shown]);
-  const msg = `The ${CASES[id].noun} did not load. Try again.`;
-  status.dataset.case = CASES[id].tone;
-  put(capLong, msg);
-  put(capShort, msg);
+  hero.classList.add('is-away');          // no other case's cells under this case's name
+  const say = colFor(id).querySelector('.hx__say');
+  const line = say.textContent;
+  const msg = `The ${NOUN[id]} did not load. Open another case and come back to try again.`;
+  say.textContent = msg;
   live.textContent = msg;
   clearTimeout(failT);
-  failT = setTimeout(() => { if (!busyOn && asked === shown) words(shown, false); }, 4000);
-}
-
-// The visitor (or the tour) picks a case. The button answers at once; the words follow the cells.
-function choose(id, { touring = false } = {}) {
-  if (!pc || id === asked || !CASES[id]) return;
-  if (!touring) { endTour(); writeHash(CASE_HASH[id]); }
-  quietFor = touring ? id : null;
-  asked = id;
-  press(id);
-  clearBusy();
-  clearTimeout(failT);
-  if (id === shown) words(id, false);                         // back to the case on screen
-  else if (!pc.fallback && !pc.loaded(id)) setBusy(id);
-  pc.setState(id).then((done) => {
-    if (done) { drawScale(pc); placeGroups(pc); placePlates(pc); }
-  }).catch((err) => { console.warn(err); failed(id); });
+  failT = setTimeout(() => { say.textContent = line; }, 6000);
 }
 
 // A visitor who saves data (Save-Data, or a 2G connection) gets a case only when they ask for it.
@@ -333,75 +293,50 @@ const saveData = () => {
   return !!(c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || '')));
 };
 
-// The other cases load in the background, one at a time, in the dock's order; a pointer on a
-// case moves it to the front, a click loads it at once (pointcloud.js). Nothing loads ahead for
-// a visitor who saves data: a click is the only ask.
-function warm(id, first = false) {
-  if (!pc || pc.fallback || saveData()) return;
-  pc.prefetch(id ? [id] : ORDER, { first });
+// Reaching for a case readies it: a data case's cells load ahead (one at a time, in the
+// background; pointcloud.js), the assistant's and the store's pictures start to load. A case
+// that is opened loads at once, also for a visitor who saves data.
+function warmCase(id, { first = false, asked = false } = {}) {
+  if (!id) {
+    if (pc && !pc.fallback && !saveData()) pc.prefetch(ORDER.filter((s) => DATA.has(s)), { first });
+    // the assistant's and the store's pictures are small: ready them too, so that a first
+    // open never shows an empty frame
+    if (!saveData()) ORDER.filter((s) => !DATA.has(s)).forEach((s) => warmCase(s));
+    return;
+  }
+  if (DATA.has(id)) {
+    if (pc && !pc.fallback && !saveData()) pc.prefetch([id], { first });
+    return;
+  }
+  if (saveData() && !asked) return;
+  $$('img[data-src]', colFor(id)).forEach((img) => {
+    const shown = () => img.classList.add('is-in');
+    img.addEventListener('load', shown, { once: true });
+    img.addEventListener('error', shown, { once: true });
+    img.src = img.dataset.src;
+    img.removeAttribute('data-src');
+    if (img.complete) shown();
+  });
 }
+// The hero's large wordmark stands in for the top bar's small one: the small one hides while
+// the large one is on screen and returns once the visitor scrolls past it.
+(() => {
+  const big = $('.hx__logo');
+  const bar = $('.pv-topbar');
+  if (!big || !bar || !('IntersectionObserver' in window)) return;
+  new IntersectionObserver(([e]) => bar.classList.toggle('is-hero-brand', e.isIntersecting), { threshold: 0 }).observe(big);
+})();
 const whenIdle = (fn) => ('requestIdleCallback' in window ? requestIdleCallback(fn, { timeout: 2500 }) : setTimeout(fn, 800));
 
-// the first case has formed: load the others when the page is idle (on a phone nothing points
-// at the dock before a tap), unless the visitor is saving data; then the tour may start
+// the first case has formed: load the other cells when the page is idle (on a phone nothing
+// points at a tab before a tap), unless the visitor is saving data; then the tour may start
 function afterIntro() {
   formed = true;
-  if (pc && !pc.fallback && !saveData()) whenIdle(() => warm());
+  if (!saveData()) whenIdle(() => warmCase());
   armTour();
 }
 
-// Where the cloud may draw: right of the copy, from under the top bar down to the dock, above a
-// strip for still / play, the 3D hint and the scale bar. On most wide windows the readout sits
-// under the copy, beside the dock, and the cloud runs to the page's edge; on short ones it is a
-// column at the top right, and the cloud keeps clear of it. A state may have its own rect: the
-// multi-omics plates keep room for their names on the right, the atlas above its rows.
-let frameBase = null;
-let frames = null;
-const topbar = $('.pv-topbar');
-function frameFor() {
-  const s = stage.getBoundingClientRect();
-  if (!s.width || !s.height) return null;
-  const h = hero.getBoundingClientRect();
-  const wide = wideMQ.matches;
-  const stripH = Math.round((wide ? (innerHeight <= 640 ? 26 : 30) : 34) * K);
-  let f, strip;
-  if (wide) {
-    const copy = $('.hx__copy').getBoundingClientRect();
-    const d = dock.getBoundingClientRect();
-    const ro = readout.getBoundingClientRect();
-    const side = ro.width > 0 && ro.left >= copy.right;      // the readout beside the cloud
-    const barBottom = topbar.getBoundingClientRect().bottom;
-    setVar('--copy-r', `${Math.round(copy.right - h.left)}px`);
-    f = {
-      left: Math.round(copy.right - s.left + 32 * K),
-      right: Math.round(Math.max(8, side ? s.right - ro.left + 24 * K : s.right - d.right)),
-      top: Math.round(Math.max(8, barBottom - s.top + 12)),
-      bottom: Math.round(Math.max(8, s.bottom - d.top + 10 * K + stripH)),
-    };
-    strip = { l: f.left, r: f.right, t: Math.round(s.height - f.bottom) };
-  } else {
-    // stacked: the strip lines up with the page's column (the dock's edges)
-    const d = dock.getBoundingClientRect();
-    f = { left: 8, right: 8, top: 10, bottom: stripH + 4 };
-    strip = { l: Math.round(d.left - s.left), r: Math.round(s.right - d.right), t: Math.round(s.height - stripH - 2) };
-  }
-  frameBase = f;
-  frames = {
-    multiomics: { ...f, right: f.right + Math.round((wide ? 92 : 78) * K) },
-    atlas: { ...f, top: f.top + Math.round(18 * K) },
-  };
-  // the same rect for the focus ring and the still; the strip under it
-  setVar('--f-l', `${f.left}px`);
-  setVar('--f-t', `${f.top}px`);
-  setVar('--f-r', `${f.right}px`);
-  setVar('--f-b', `${f.bottom}px`);
-  setVar('--s-l', `${strip.l}px`);
-  setVar('--s-r', `${strip.r}px`);
-  setVar('--s-t', `${strip.t}px`);
-  setVar('--strip-h', `${stripH}px`);
-  hero.classList.add('is-framed');       // the strip shows once it is in place (home.css)
-  return f;
-}
+/* -- on the cloud --------------------------------------------------------------- */
 
 // The atlas's condition groups, each named over its first tile.
 function placeGroups(p) {
@@ -445,7 +380,7 @@ function placePlates(p) {
 const NICE = [10, 20, 50, 100, 200, 250, 500, 1000, 2000, 5000];
 function drawScale(p) {
   const um = p.umPerPixel && p.umPerPixel();
-  if (!um || p.state === '3d' || p._settling || p.fallback) { scaleBar.dataset.off = ''; return; }
+  if (!um || p.state === '3d' || p._settling || p.fallback || !DATA.has(open)) { scaleBar.dataset.off = ''; return; }
   const target = 80 * K * um;
   const v = NICE.reduce((b, n) => (Math.abs(n - target) < Math.abs(b - target) ? n : b), NICE[0]);
   delete scaleBar.dataset.off;
@@ -457,23 +392,23 @@ function drawScale(p) {
   if (span.textContent !== label) span.textContent = label;
 }
 
+// the cell under the pointer: its type's name, in its colour
 function showTip(info) {
-  if (!info) { tip.classList.remove('is-on'); return; }
-  const c = CASES[info.state];
+  if (!info || !DATA.has(open)) { tip.classList.remove('is-on'); return; }
   tip.querySelector('i').style.setProperty('--c', info.color);
-  tip.querySelector('b span').textContent = info.name;
-  // words only: the brief lets the page print no further numbers
-  let detail = c.detail;
-  if (info.state === 'atlas' && info.detail) detail = info.detail.replace(/ · .*$/, ' · atlas');
-  if (info.state === 'multiomics') detail = (info.detail.match(/, ([^,]+)$/) || [, c.detail])[1];
-  tip.querySelector('small').textContent = detail;
-  const s = stage.getBoundingClientRect(), h = hero.getBoundingClientRect();
+  // a cell type by its name; a multi-omics spot by its modality alone (the plate it is on)
+  tip.querySelector('b span').textContent = info.state === 'multiomics' ? info.name.replace(/^.* · /, '') : info.name;
+  const s = deck.getBoundingClientRect(), h = hero.getBoundingClientRect();
   let x = s.left - h.left + info.x + 14, y = s.top - h.top + info.y - 18;
   const w = tip.offsetWidth || 160;
   if (x + w > h.width - 12) x = s.left - h.left + info.x - w - 14;
   tip.style.setProperty('--tx', `${Math.round(x)}px`);
   tip.style.setProperty('--ty', `${Math.round(y)}px`);
   tip.classList.add('is-on');
+}
+
+function showHint() {
+  hint.hidden = !pc || pc.fallback || !DATA.has(open) || !(open === '3d' || canvasFocus);
 }
 
 function stillMode() {
@@ -484,17 +419,22 @@ function stillMode() {
   $('#hx-fallback').hidden = false;
 }
 
-function showStill() {
-  // the manifest could not be read: the 2D poster, in the cloud's own rect
-  const img = document.createElement('img');
-  img.src = 'assets/data/hero/poster-2d.webp';
-  img.alt = 'Still image of a Xenium 5K mouse colon section, 135,232 cells coloured by 73 cell types';
-  $('#hx-still').append(img);
+// the manifest could not be read: each data case shows its still, in its field
+function showStill(id = drawn) {
+  let img = $('#hx-still > img');
+  if (!img) {
+    img = document.createElement('img');
+    img.decoding = 'async';
+    $('#hx-still').append(img);
+  }
+  place(id);
+  img.src = POSTER(id);
+  img.alt = `Still image of the ${NOUN[id]}`;
+  drawn = id;
   stillMode();
-  buttons.forEach((b) => { b.disabled = true; });
 }
 
-// still / play for the idle sway and the tour (WCAG 2.2.2); a morph a visitor asks for still runs
+// still / play for the idle sway and the tour (WCAG 2.2.2); a switch a visitor asks for still runs
 let swayOn = true;
 function setMotionButton() {
   motion.dataset.state = swayOn ? 'playing' : 'paused';
@@ -513,12 +453,12 @@ function initMotion() {
   reduceMQ.addEventListener('change', update);
 }
 
-/* A one-time tour. When the page has sat still for 5 s with the cloud in view, the cloud steps
- * through 3D, the atlas and multi-omics and back to the 2D section, 4 s a stop, so the cases
- * show without a click. Any pointer, key, wheel, touch or scroll stops it for good, as do the
- * pause control, a hidden tab and reduced motion. A link to a case (#3d) skips it, and so does
- * saving data: the tour would download the three other cases unasked. */
-const TOUR = ['3d', 'atlas', 'multiomics', '2d'];
+/* A one-time tour. When the page has sat still for 5 s with the deck in view, the deck opens
+ * each case in turn, 4 s a stop, and comes back to the 2D section, so the six show without a
+ * click. Any pointer, key, wheel, touch or scroll stops it for good, as do the pause control,
+ * a hidden tab and reduced motion. A link to a case (#3d) skips it, and so does saving data:
+ * the tour would download the other cases unasked. */
+const TOUR = ['3d', 'atlas', 'multiomics', 'ai', 'store', '2d'];
 const tour = { on: false, done: false, seen: false, idleT: 0, stepT: 0, i: 0, wait: 0 };
 function armTour() {
   clearTimeout(tour.idleT);
@@ -527,7 +467,7 @@ function armTour() {
 }
 function tourCan() {
   return !tour.done && formed && pc && !pc.fallback && !reduced() && !saveData() && swayOn && !document.hidden
-    && tour.seen && asked === '2d' && shown === '2d' && !canvasFocus;
+    && tour.seen && open === '2d' && !canvasFocus;
 }
 function startTour() {
   if (!tourCan()) { armTour(); return; }
@@ -541,11 +481,11 @@ function tourStep() {
   if (!tour.on) return;
   const id = TOUR[tour.i];
   if (!id) { endTour(); return; }
-  if (!pc.loaded(id)) {
+  if (DATA.has(id) && !pc.loaded(id)) {
     // on its way in the background: wait a little, and give up rather than show a loading state
     // (or at once if the visitor has started to save data: nothing loads for the tour then)
     if (saveData()) { endTour(); return; }
-    warm(id, true);
+    warmCase(id, { first: true });
     if (++tour.wait > 25) { endTour(); return; }
     tour.stepT = setTimeout(tourStep, 400);
     return;
@@ -590,53 +530,72 @@ function initTour() {
     new IntersectionObserver(([e]) => {
       tour.seen = e.intersectionRatio >= 0.6;
       if (!tour.seen && tour.on) endTour();
-    }, { threshold: [0, 0.6, 1] }).observe(stage);
+    }, { threshold: [0, 0.6, 1] }).observe(deck);
   } else {
     tour.seen = true;
   }
   armTour();
 }
 
+/* -- the tabs ------------------------------------------------------------------- */
+
+// The six tabs are one stop for Tab; the arrow keys (left / right across the columns, up /
+// down along the rows, either works) move to the next case and open it, Home and End to the
+// first and the last.
+function initTabs6() {
+  const orient = () => tablist.setAttribute('aria-orientation', colsMQ.matches ? 'horizontal' : 'vertical');
+  orient();
+  colsMQ.addEventListener('change', orient);
+  caseTabs.forEach((t, i) => {
+    t.addEventListener('click', () => choose(t.dataset.state));
+    // a mouse over a case is a visitor reaching for it (a finger's tap is the click itself)
+    t.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') warmCase(t.dataset.state, { first: true }); }, { passive: true });
+    t.addEventListener('focus', () => { if (t.matches(':focus-visible')) warmCase(t.dataset.state, { first: true }); });
+    t.addEventListener('keydown', (e) => {
+      const n = caseTabs.length;
+      const to = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: n - 1 }[e.key];
+      if (to === undefined) return;
+      e.preventDefault();
+      const next = caseTabs[(to + n) % n];
+      next.focus();
+      choose(next.dataset.state);
+    });
+  });
+}
+
 async function initHero() {
+  initTabs6();
   const first = readHash().kase || '2d';
-  shown = first;
-  asked = first;
-  reserveWords();
-  press(first);
-  describe(first, { first: true });
+  if (first !== '2d') openCase(first, { instant: true });
+  hero.dataset.case = TONE[first];
+  drawn = DATA.has(first) ? first : '2d';
+  if (!DATA.has(first)) { hero.classList.add('is-away'); warmCase(first, { asked: true }); }
   let raf = 0;
   const refit = (glide = 360) => {
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(() => {
-      const f = frameFor();
-      if (pc && f) pc.setFrame(f, { frames, glide: reduced() ? 0 : glide });
+      const id = DATA.has(open) ? open : drawn;
+      const f = place(id);
+      if (pc && !pc.fallback) pc.setFrame(f, { frames: null, glide: DATA.has(open) && !reduced() ? glide : 0 });
+      else if (pc) pc.setFrame(f, { frames: null });
     });
   };
-  // the dock rises a few pixels into place as the page loads (hx-in, which hx-settled may cut
-  // short): measure again once it is there
-  const settled = (e) => {
-    if (e.target !== dock) return;
-    ['animationend', 'animationcancel'].forEach((t) => dock.removeEventListener(t, settled));
-    refit();
-  };
-  ['animationend', 'animationcancel'].forEach((t) => dock.addEventListener(t, settled));
   try {
     pc = await PointCloud.mount(glBox, {
       manifestUrl: 'assets/data/hero/manifest.json',
-      state: first,
+      state: drawn,
       background: 'transparent',
       backgroundLift: 0,
       preload: 'first',
+      intro: DATA.has(first),
+      duration: 1400,                       // the cells cross from one field to the next
       introDuration: 1250,
       introAlpha: 0.32,
       posterHost: $('#hx-still'),            // no WebGL: the still sits in the cloud's own rect
-      frame: frameFor(),
-      frames,
+      frame: place(drawn),
+      frames: null,
       onReady: (p) => {
-        manifest = p.manifest;
-        legendFor(p.state, false);
         hero.classList.add('is-ready');
-        washTo(shown, true);                  // the wash under the cloud's own rect
         if (p.fallback) {
           // the still is in the cloud's own rect; the cases swap stills. If the head preloaded
           // the first case's particles (WebGL2 exists but could not start), take them from the
@@ -644,18 +603,15 @@ async function initHero() {
           stillMode();
           const pre = document.querySelector('link[rel="preload"][as="fetch"][href$=".bin"]');
           if (pre) fetch(pre.href).catch(() => {});
+        } else if (!DATA.has(open)) {
+          p.pause();                          // opened on the assistant or the store
         }
       },
       onState: (id, phase) => {
         if (!pc) return;
         pc._settling = phase === 'start';
-        if (phase === 'start') {
-          showTip(null);
-          clearBusy();
-          if (id !== shown) describe(id, { quiet: quietFor === id });
-        } else if (!formed) {
-          afterIntro();
-        }
+        if (phase === 'start') { showTip(null); clearBusy(); }
+        else if (!formed) afterIntro();
       },
       onProgress,
       onHover: showTip,
@@ -663,15 +619,14 @@ async function initHero() {
     });
   } catch (err) {
     console.warn(err);
-    showStill();
+    if (DATA.has(open)) showStill(open);
     return;
   }
-  manifest = pc.manifest;
-  window.__home = { pc, frameFor, frames: () => frames, tour };   // for the page's own checks
+  window.__home = { pc, choose, geometry, place, tour, open: () => open };   // for the page's own checks
   showHint();
   initMotion();
   initTour();
-  if (pc.fallback || reduced()) afterIntro();     // no intro to wait for
+  if (pc.fallback || reduced() || !DATA.has(first)) afterIntro();     // no intro to wait for
 
   const cv = glBox.querySelector('canvas');
   if (cv) {
@@ -684,37 +639,15 @@ async function initHero() {
     cv.addEventListener('blur', () => { canvasFocus = false; hero.classList.remove('is-focus'); showHint(); });
   }
 
-  // a mouse over the dock is a visitor reaching for the cases (a finger's tap is the click itself)
-  dock.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') warm(); }, { passive: true });
-  // so is keyboard focus on a case. A tap also focuses the button, just before its click; a
-  // background start there would hold the case the visitor asked for at low priority.
-  dock.addEventListener('focusin', (e) => {
-    const b = e.target.closest('.hx__case-btn');
-    if (b && b.matches(':focus-visible')) warm(b.dataset.state, true);
-  });
-  buttons.forEach((b) => {
-    b.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') warm(b.dataset.state, true); }, { passive: true });
-    b.addEventListener('click', () => choose(b.dataset.state));
-  });
-
   addEventListener('resize', () => { scale(); refit(); });
-  wideMQ.addEventListener('change', () => refit(0));
-  midMQ.addEventListener('change', () => refit(0));
+  colsMQ.addEventListener('change', () => refit(0));
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => refit());
   if ('ResizeObserver' in window) {
-    // refit only when the cloud's room changes: the copy's width, the dock's size, the readout's
-    // width (its height follows the colour key of each case and does not move the cloud)
-    const seen = new Map();
-    const ro = new ResizeObserver((entries) => {
-      let moved = false;
-      entries.forEach((e) => {
-        const w = Math.round(e.contentRect.width), h = Math.round(e.contentRect.height);
-        const key = e.target === dock ? `${w}x${h}` : `${w}`;
-        if (seen.get(e.target) !== key) { seen.set(e.target, key); moved = true; }
-      });
-      if (moved) refit();
-    });
-    [$('.hx__copy'), readout, dock].forEach((el) => el && ro.observe(el));
+    let seen = '';
+    new ResizeObserver(([e]) => {
+      const key = `${Math.round(e.contentRect.width)}x${Math.round(e.contentRect.height)}`;
+      if (key !== seen) { seen = key; refit(); }
+    }).observe(deck);
   }
 }
 
@@ -1027,7 +960,7 @@ function initReveals() {
 
 // A case or a tab can be linked to (a talk, a post): the address follows the visitor's choice,
 // without adding history entries. The 2D section is the page's own address.
-const CASE_HASH = { '2d': '', '3d': '3d', atlas: 'atlas', multiomics: 'multiomics' };
+const CASE_HASH = { '2d': '', '3d': '3d', atlas: 'atlas', multiomics: 'multiomics', ai: 'assistant', store: 'tool-store' };
 const TAB_HASH = ['data', 'views', 'analyses'];
 function readHash() {
   let h = '';
