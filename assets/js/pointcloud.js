@@ -59,6 +59,8 @@
  *                               //   A state asked for by setState loads at once and stops a
  *                               //   background download, which starts again after it
  *   pc.loaded('3d'); pc.progress('3d');   // its particles are here; 0..1 while loading, else null
+ *   pc.detailReady('tma');      // → Promise<boolean>: its full-detail image is on the GPU (false: none)
+ *   pc.setDetail(false);        // hide the full-detail image (true lets it fade in again)
  *   pc.pause(); pc.resume();
  *   pc.destroy();               // frees GL objects, listeners and the canvas it created
  *
@@ -92,6 +94,13 @@
  * new framing (a resize, a layout change) glides instead of jumping, with or without a morph.
  * The tissue array draws fewer cells than N (its manifest entry's drawn / drawnPhone): its other
  * particles take the palette's hidden entry (alpha 0, not pickable) and fade out as they arrive.
+ * Its manifest entry also names a full-detail image of every cell (`detail`: WebP, straight RGBA
+ * over the state's frame box). It is fetched when the state is asked for or prefetched, never with
+ * the first load of another state; the engine takes the smallest file that covers the frame on
+ * screen in device px (the smallest when the visitor saves data). It is drawn as a textured quad
+ * in the particles' own world coordinates, so the camera's sway, a drag or a resize moves both
+ * alike; once the particles land it fades in over them (0.7 s, at once under reduced motion), and
+ * a morph that leaves fades it out (0.24 s) as the particles take over.
  *
  * This file merges the homepage concepts' engine changes (2026-10-22): per-state frames
  * (concepts/home-a), the camera clock, setView, liftColors and plateAnchors (concepts/home-b),
@@ -289,6 +298,25 @@ void main() {
   o = c;
 }`;
 
+// the full-detail image: a quad on the state's plane (y = 0), in the particles' world coordinates
+const VS_PLATE = `#version 300 es
+uniform mat4 uVP;
+uniform vec4 uBox;
+out vec2 vUv;
+void main() {
+  vec2 c = vec2(float(gl_VertexID & 1), float(gl_VertexID >> 1));
+  vUv = c;
+  gl_Position = uVP * vec4(mix(uBox.x, uBox.z, c.x), 0.0, mix(uBox.y, uBox.w, c.y), 1.0);
+}`;
+
+const FS_PLATE = `#version 300 es
+precision highp float;
+in vec2 vUv;
+uniform sampler2D uTex;
+uniform float uAlpha;
+out vec4 o;
+void main() { o = texture(uTex, vUv) * uAlpha; }`;
+
 const FS_COMPOSITE = `#version 300 es
 precision highp float;
 in vec2 vUv;
@@ -394,6 +422,12 @@ class Hero {
     this.camAnim = null;            // { from, start, dur }: the camera's own blend
     this.snapLift = null;
     this.idlePaused = false;        // setIdle(false): the sway holds where it is
+    this.details = new Map();       // id → { file, img, tex, w, h }: full-detail images
+    this._uploads = [];             // decoded images waiting for a frame with no morph in flight
+    this.plate = null;              // { d, det }: the full-detail image drawn now
+    this.detailMix = 0;             // 0..1: how far it has faded in over its particles
+    this.detailOn = true;           // setDetail(false) hides it
+    this._fading = false;
   }
 
   // ── setup ────────────────────────────────────────────────────────────────
@@ -439,6 +473,7 @@ class Hero {
 
     await this._load(first);
     this._enter(first);
+    this._wantDetail(first);
     // the other states, in the background (or on prefetch() / when asked for)
     if (this.opts.preload !== 'first') this.prefetch();
     return this;
@@ -491,6 +526,8 @@ class Hero {
     this.progDown = program(gl, VS_FULL, FS_DOWN);
     this.progBlur = program(gl, VS_FULL, FS_BLUR);
     this.progComp = program(gl, VS_FULL, FS_COMPOSITE);
+    this.progPlate = program(gl, VS_PLATE, FS_PLATE);
+    this.aniso = gl.getExtension('EXT_texture_filter_anisotropic');
     this.vao = gl.createVertexArray();
     this.vaoFull = gl.createVertexArray();
     // per-particle randoms (stagger, noise phase), the same on the CPU for snapshots
@@ -589,7 +626,6 @@ class Hero {
   }
 
   _fetch(job) {
-    const st = job.st;
     job.started = true;
     job.got = 0;
     job.ctrl = typeof AbortController === 'function' ? new AbortController() : null;
@@ -597,7 +633,27 @@ class Hero {
     // a background download asks for low priority, so it never slows what the page is showing
     const init = job.ctrl ? { signal: job.ctrl.signal } : {};
     if (!job.urgent) init.priority = 'low';
-    fetch(new URL(st.file, this.base), init).then((r) => {
+    (job.kind === 'detail' ? this._fetchDetail(job, init) : this._fetchState(job, init)).then((val) => {
+      drop();
+      job.res(val);
+      this._pump();
+    }).catch((err) => {
+      if (job.aborted && !this.destroyed) {    // gave way to a state that was asked for: queue it again
+        job.aborted = false;
+        job.started = false;
+        job.got = 0;
+        this._pump();
+        return;
+      }
+      drop();
+      job.rej(err);
+      this._pump();
+    });
+  }
+
+  _fetchState(job, init) {
+    const st = job.st;
+    return fetch(new URL(st.file, this.base), init).then((r) => {
       if (!r.ok) throw new Error(`pointcloud: ${st.file} ${r.status}`);
       return this._read(job, r);
     }).then((buf) => {
@@ -612,24 +668,119 @@ class Hero {
       this._style(d);
       this._world(d);
       this.data.set(job.id, d);
-      drop();
       // fit its camera and hand its particles to the GPU now, not in the frame a switch starts
       if (this.cssW) this._rest(job.id);
       if (this.gl && !this.gl.isContextLost() && !d.gpu) this._upload(d);
-      job.res(d);
-      this._pump();
-    }).catch((err) => {
-      if (job.aborted && !this.destroyed) {    // gave way to a state that was asked for: queue it again
-        job.aborted = false;
-        job.started = false;
-        job.got = 0;
-        this._pump();
-        return;
-      }
-      drop();
-      job.rej(err);
-      this._pump();
+      return d;
     });
+  }
+
+  // a full-detail image: decoded off the main thread where the browser can, then uploaded in a
+  // frame with no morph in flight (_frame), so an upload never costs a morph a frame
+  _fetchDetail(job, init) {
+    return fetch(new URL(job.file, this.base), init).then((r) => {
+      if (!r.ok) throw new Error(`pointcloud: ${job.file} ${r.status}`);
+      return r.blob();
+    }).then(decodeImage).then((img) => {
+      if (this.destroyed) { releaseImage(img); return null; }
+      const det = { file: job.file, img, tex: null, w: img.width, h: img.height };
+      this.details.set(job.state, det);
+      this._uploads.push(det);
+      this._kick();
+      return det;
+    });
+  }
+
+  _hasDetail(id) {
+    const st = this.states && this.states.find((s) => s.id === id);
+    return !!(st && st.detail && st.detail.files && st.detail.files.length);
+  }
+
+  // the smallest file that covers the frame's long side on screen, in device px (the smallest for
+  // a visitor who saves data)
+  _detailFile(st) {
+    const files = st.detail.files.slice().sort((a, b) => Math.max(...a.size) - Math.max(...b.size));
+    const c = typeof navigator !== 'undefined' && navigator.connection;
+    if (c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || ''))) return files[0];
+    const [W, H] = st.frame.size, r = this._rect(st.id), m = (st.camera && st.camera.margin) || 0.05;
+    const across = Math.min(r.w, (r.h * Math.max(W, H)) / Math.min(W, H)) * (1 - 2 * m) * (this.dpr || 1);
+    return files.find((f) => Math.max(...f.size) >= across * 0.95) || files[files.length - 1];
+  }
+
+  _loadDetail(id, urgent = true) {
+    if (this.fallback || !this._hasDetail(id)) return Promise.resolve(null);
+    const have = this.details.get(id);
+    if (have) return Promise.resolve(have);
+    const key = `${id}#detail`;
+    let job = this.loading.get(key);
+    if (!job) {
+      const st = this.states.find((s) => s.id === id), f = this._detailFile(st);
+      job = { id: key, state: id, kind: 'detail', st, file: f.file, urgent: false, started: false, got: 0, total: f.bytes || 0, ctrl: null, aborted: false };
+      job.promise = new Promise((res, rej) => { job.res = res; job.rej = rej; });
+      this.loading.set(key, job);
+      this._queue.push(job);
+    }
+    if (urgent && !job.urgent) {
+      job.urgent = true;
+      this._queue = [job, ...this._queue.filter((j) => j !== job)];
+    }
+    this._pump();
+    return job.promise;
+  }
+
+  // a state that is asked for brings its full-detail image too
+  _wantDetail(id) {
+    if (this._hasDetail(id) && !this.details.has(id)) this._loadDetail(id, true).catch((e) => console.warn(e));
+  }
+
+  _uploadDetails() {
+    const gl = this.gl;
+    if (!gl || gl.isContextLost()) return;
+    for (const det of this._uploads.splice(0)) {
+      if (det.tex || !det.img) continue;
+      const tex = gl.createTexture();
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      // premultiplied on upload (an ImageBitmap carries this itself), sRGB values as they are
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, det.img);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      if (this.aniso) {
+        const max = gl.getParameter(this.aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT) || 1;
+        gl.texParameterf(gl.TEXTURE_2D, this.aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, max));
+      }
+      releaseImage(det.img);
+      det.img = null;
+      det.tex = tex;
+    }
+  }
+
+  // the full-detail image of the state at rest fades in over its particles; a morph fades it out
+  // as soon as it starts, and the particles take over
+  _detailStep(dt) {
+    const d = this.dst && this.dst.d;
+    const det = d && this.details.get(d.st.id);
+    const want = !!(this.detailOn && det && det.tex && !this.morph);
+    if (want && (!this.plate || this.plate.d !== d)) {
+      if (this.plate) this.detailMix = 0;
+      this.plate = { d, det };
+    }
+    const target = want ? 1 : 0;
+    if (!this.plate) this.detailMix = 0;
+    else if (this.reduced) this.detailMix = target;
+    else if (this.detailMix !== target) {
+      const step = dt / (target ? 0.7 : 0.24);
+      this.detailMix = target ? Math.min(1, this.detailMix + step) : Math.max(0, this.detailMix - step);
+    }
+    if (this.detailMix <= 0) this.plate = null;
+    this._fading = !!this.plate && this.detailMix !== target;
   }
 
   // the body as it arrives, so a slow network can show how far a state has come
@@ -914,6 +1065,7 @@ class Hero {
     if (id === this.state && this.morph) return this.morph.promise || Promise.resolve(true);
     return this._load(id).then((d) => {
       if (this.destroyed || this._want !== id) return false;
+      this._wantDetail(id);
       return this._go(d, instant || this.reduced);
     });
   }
@@ -1052,6 +1204,7 @@ class Hero {
   _wantsLoop() {
     if (this.destroyed || this.fallback || !this.visible || this.hidden || this.paused) return false;
     if (this.morph || this.camAnim || this._drag || Math.abs(this._vel[0]) + Math.abs(this._vel[1]) > 1e-5) return true;
+    if (this._fading || this._uploads.length) return true;
     return this.opts.idle && !this.reduced && !this.idlePaused;
   }
 
@@ -1074,6 +1227,8 @@ class Hero {
       this.morph.t = (performance.now() - this.morph.start) / this.morph.dur;
       if (this.morph.t >= 1) { finished = this.morph; this.morph = null; }
     }
+    if (this._uploads.length && !this.morph) this._uploadDetails();
+    this._detailStep(dt);
     const cam = this._camAt(now);
     this._applyCamera(cam);
     this._render();
@@ -1106,6 +1261,9 @@ class Hero {
     const gl = this.gl, fb = this.fb, N = this.budget;
     const M = this.morph, T = M ? clamp(M.t, 0, 1) : 1;
     const rp = this._rpNow();
+    // the full-detail image over the particles: they fade as it comes in, and stop drawing under it
+    const pm = this.plate ? smoothstep(0, 1, this.detailMix) : 0;
+    const drawPts = pm < 0.999;
     const srcBuf = this.src.kind === 'snap' ? this.snapGpu : this.src.d.gpu;
     const dstBuf = this.dst.d.gpu;
     if (!this.sweepDir) this._sweep(this.src);
@@ -1144,7 +1302,7 @@ class Hero {
     gl.uniform1f(u.uFocal, this._focal);
     gl.uniform1f(u.uMinPx, 1.15 * dpr);
     gl.uniform1f(u.uMaxPx, Math.min(this.maxPoint, 48 * dpr));
-    gl.uniform1f(u.uAlpha, rp.alpha);
+    gl.uniform1f(u.uAlpha, rp.alpha * (1 - pm));
     gl.uniform1f(u.uFog, rp.fog);
     const r = this._radius();
     gl.uniform2f(u.uFogRange, c.dist - r * 0.55, c.dist + r * 0.85);
@@ -1155,7 +1313,7 @@ class Hero {
     gl.enable(gl.DEPTH_TEST);
     // pre-pass: the cores write depth, so near cells hide far ones without hard edges
     const prepass = rp.add < 0.5;
-    if (prepass) {
+    if (prepass && drawPts) {
       gl.colorMask(false, false, false, false);
       gl.depthFunc(gl.LESS);
       gl.depthMask(true);
@@ -1170,13 +1328,36 @@ class Hero {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     if (!prepass) gl.disable(gl.DEPTH_TEST);
-    gl.drawArrays(gl.POINTS, 0, N);
+    if (drawPts) gl.drawArrays(gl.POINTS, 0, N);
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
     gl.bindVertexArray(null);
 
+    // the full-detail image: a quad over the state's frame box, drawn with the same view and
+    // projection as the particles, so the two line up wherever the camera is
+    let glowTo = rp.glow;
+    if (pm > 0.001) {
+      const pd = this.plate.d, st = pd.st, [W, H] = st.frame.size, s = 2 / Math.max(W, H);
+      const bx = st.detail.box || [0, 0, 1, 1];
+      if (st.detail.glow != null) glowTo = st.detail.glow;
+      gl.useProgram(this.progPlate.p);
+      gl.bindVertexArray(this.vaoFull);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.plate.det.tex);
+      const pu = this.progPlate.u;
+      gl.uniformMatrix4fv(pu.uVP, false, this._vp);
+      gl.uniform4f(pu.uBox, (bx[0] - 0.5) * W * s, (bx[1] - 0.5) * H * s, (bx[2] - 0.5) * W * s, (bx[3] - 0.5) * H * s);
+      gl.uniform1f(pu.uAlpha, pm);
+      gl.uniform1i(pu.uTex, 0);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl.disable(gl.BLEND);
+      gl.bindVertexArray(null);
+    }
+
     // bloom at a quarter of the resolution
-    const glow = this._bloomOn() ? rp.glow : 0;
+    const glow = this._bloomOn() ? lerp(rp.glow, glowTo, pm) : 0;
     gl.bindVertexArray(this.vaoFull);
     if (glow > 0) {
       gl.viewport(0, 0, fb.bw, fb.bh);
@@ -1301,6 +1482,13 @@ class Hero {
       this.snapGpu = null;
       if (this.src.kind === 'snap') this.src = { kind: 'state', d: this.dst.d, rp: this.dst.d.rp };
       this.morph = null;
+      // the full-detail images went with the context: fetch the one in view again (HTTP cache)
+      this._uploads.forEach((det) => releaseImage(det.img));
+      this._uploads = [];
+      this.details.clear();
+      this.plate = null;
+      this.detailMix = 0;
+      this._wantDetail(this.state);
       this._kick();
     });
     if (this.opts.interactive) {
@@ -1505,15 +1693,41 @@ class Hero {
   // load states ahead of a switch, in the background and one at a time: the ids given, in
   // that order, or every state not loaded yet. { first: true } moves them to the front of
   // the background queue (a visitor pointing at a case).
+  // A state's full-detail image comes after the particles of every state asked for.
   prefetch(ids, { first = false } = {}) {
     if (!this.states || this.fallback) return;
-    const list = (ids == null ? this.states.map((s) => s.id) : [].concat(ids)).filter((id) => !this.data.has(id));
+    const want = ids == null ? this.states.map((s) => s.id) : [].concat(ids);
+    const list = want.filter((id) => !this.data.has(id));
     for (const id of list) this._load(id, false).catch((e) => console.warn(e));
-    if (first && list.length) {
-      const jobs = list.map((id) => this.loading.get(id)).filter(Boolean);
+    const dets = want.filter((id) => this._hasDetail(id) && !this.details.has(id));
+    for (const id of dets) this._loadDetail(id, false).catch((e) => console.warn(e));
+    if (first && (list.length || dets.length)) {
+      const jobs = [...list.map((id) => this.loading.get(id)), ...dets.map((id) => this.loading.get(`${id}#detail`))].filter(Boolean);
       this._queue = [...this._queue.filter((j) => j.urgent), ...jobs.filter((j) => !j.urgent),
         ...this._queue.filter((j) => !j.urgent && !jobs.includes(j))];
     }
+  }
+
+  // false hides the full-detail image (the particles show again); true lets it fade back in
+  setDetail(on) {
+    this.detailOn = !!on;
+    this._kick();
+  }
+
+  // → Promise<boolean>: true once a state's full-detail image is on the GPU (it shows as soon as
+  // the state is at rest), false when the state has none or the engine shows posters
+  detailReady(id = this.state) {
+    if (this.fallback || !this._hasDetail(id)) return Promise.resolve(false);
+    const have = this.details.get(id);
+    if (have && have.tex) return Promise.resolve(true);
+    return this._loadDetail(id, true).then((det) => new Promise((res) => {
+      const wait = () => {
+        if (!det || this.destroyed) res(false);
+        else if (det.tex) res(true);
+        else requestAnimationFrame(wait);
+      };
+      wait();
+    }));
   }
 
   // true when a state's particles are here; progress(id): 0..1 while it loads, else null
@@ -1587,6 +1801,7 @@ class Hero {
     this._wantFrame = frame ? [frame, fs] : null;
     return this._load(id).then((d) => {
       if (this.destroyed || this._want !== id) return false;
+      this._wantDetail(id);
       const p = this._go(d, quick);
       const w = this._wantFrame;
       if (w && this._frameKey(w[0], w[1]) !== this._frameKey(this.opts.frame, this.opts.frames)) {
@@ -1650,22 +1865,48 @@ class Hero {
     this._listeners = [];
     if (this.morph && this.morph.resolve) this.morph.resolve(false);
     const gl = this.gl;
+    this._uploads.forEach((det) => releaseImage(det.img));
+    this._uploads = [];
     if (gl && !gl.isContextLost()) {
       for (const d of this.data.values()) if (d.gpu) Object.values(d.gpu).forEach((b) => gl.deleteBuffer(b));
       if (this.snapGpu) Object.values(this.snapGpu).forEach((b) => gl.deleteBuffer(b));
+      for (const det of this.details.values()) if (det.tex) gl.deleteTexture(det.tex);
       gl.deleteBuffer(this.randBuf);
       if (this.fb) {
         [this.fb.sceneTex, this.fb.aTex, this.fb.bTex].forEach((t) => gl.deleteTexture(t));
         [this.fb.scene, this.fb.a, this.fb.b].forEach((f) => gl.deleteFramebuffer(f));
         gl.deleteRenderbuffer(this.fb.depth);
       }
-      [this.prog, this.progDown, this.progBlur, this.progComp].forEach((p) => p && gl.deleteProgram(p.p));
+      [this.prog, this.progDown, this.progBlur, this.progComp, this.progPlate].forEach((p) => p && gl.deleteProgram(p.p));
       gl.deleteVertexArray(this.vao); gl.deleteVertexArray(this.vaoFull);
     }
     if (this.ownCanvas) this.canvas.remove();
     if (this.poster) this.poster.remove();
     this.data.clear();
+    this.details.clear();
   }
+}
+
+// An image blob, decoded for texImage2D: an ImageBitmap (decoded off the main thread, premultiplied
+// by its own options, which an upload follows), else an <img> (premultiplied by the unpack flag).
+async function decodeImage(blob) {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      return await createImageBitmap(blob, { premultiplyAlpha: 'premultiply', colorSpaceConversion: 'none' });
+    } catch (_) { /* an <img> below */ }
+  }
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.src = url;
+  img._url = url;
+  try { await img.decode(); } catch (err) { URL.revokeObjectURL(url); throw err; }
+  return img;
+}
+
+function releaseImage(img) {
+  if (!img) return;
+  if (typeof img.close === 'function') img.close();
+  if (img._url) { URL.revokeObjectURL(img._url); img._url = null; }
 }
 
 // a software rasteriser (SwiftShader, llvmpipe) cannot hold 60 fps here: show the poster instead
