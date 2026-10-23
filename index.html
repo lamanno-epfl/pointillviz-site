@@ -315,25 +315,25 @@
 
         <!-- Analyses -->
         <div class="pv-tabs__panel wk__panel" role="tabpanel" id="wk-p-ana" aria-labelledby="wk-t-ana" hidden>
-          <figure class="wk-tile wk-tile--big wk-tile--fig">
-            <div class="wk-tile__media"><img src="assets/media/ana-moran.webp" width="1180" height="908" loading="lazy" decoding="async" alt="Moran’s I of the five highest-ranked genes, Krt20 first, beside a map of the section with the cells of Krt20’s high–high class in red"></div>
-            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Spatial statistics</strong> Moran’s I, with closed-form nulls.</span><span class="wk-tile__meta">Xenium 5K · mouse colon</span></figcaption>
-          </figure>
-          <figure class="wk-tile wk-tile--wide" style="--ar: 2.4">
-            <div class="wk-tile__media wk-tile__media--low">
-              <img src="assets/media/ana-lens.webp" width="1100" height="458" loading="lazy" decoding="async" alt="The Lens: a loupe over the colon section and the panel that recounts the cell types under it">
+          <figure class="wk-tile wk-tile--big wk-tile--app" style="--ar: 1.45">
+            <div class="wk-tile__media">
+              <img src="assets/media/ana-lens.webp" width="1280" height="882" loading="lazy" decoding="async" alt="The Lens on the colon section: a wide loupe over a cluster of immune cells, and the panel beside it that recounts the cell types under the loupe">
               <video class="wk-vid" data-src="assets/media/ana-lens.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
               <button class="wk-play" type="button" aria-label="Pause the clip" hidden></button>
             </div>
             <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Lens &amp; Gating</strong> Recount what is on screen, every frame.</span></figcaption>
           </figure>
-          <figure class="wk-tile wk-tile--fig wk-tile--panel">
-            <div class="wk-tile__media"><img src="assets/media/ana-lasso.webp" width="760" height="463" loading="lazy" decoding="async" alt="A lasso region drawn on the cells and the volcano plot of differential expression between two regions, Pigr and Epcam on one side, Cd74 and C3 on the other"></div>
-            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Lasso → region</strong> Composition, top genes, a volcano.</span></figcaption>
+          <figure class="wk-tile wk-tile--wide wk-tile--app" style="--ar: 2.77">
+            <div class="wk-tile__media"><img src="assets/media/ana-lasso.webp" width="1280" height="462" loading="lazy" decoding="async" alt="Two lasso regions on the colon section, A in blue around a cluster of immune cells and B in orange over the epithelium, beside the volcano plot of the genes that differ between them"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Lasso → region</strong> Compare two regions: composition, top genes, a volcano.</span></figcaption>
+          </figure>
+          <figure class="wk-tile wk-tile--fig">
+            <div class="wk-tile__media"><img src="assets/media/ana-moran.webp" width="760" height="447" loading="lazy" decoding="async" alt="Moran’s I of the five highest-ranked genes, Krt20 first, beside a map of the section with the cells of Krt20’s high–high class in red"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Spatial statistics</strong> Moran’s I, with <span class="nw">closed-form</span> nulls.</span></figcaption>
           </figure>
           <figure class="wk-tile wk-tile--fig wk-tile--panel">
             <div class="wk-tile__media"><img src="assets/media/ana-lr.webp" width="760" height="463" loading="lazy" decoding="async" alt="Cxcl13-positive and Cxcr5-positive cells where they meet in the colon section"></div>
-            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Ligand–receptor</strong> Pairs scored in well under a second.</span></figcaption>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Ligand–receptor</strong> Runs <span translate="no">LIANA+</span>, optimised to be 20× faster.</span></figcaption>
           </figure>
         </div>
       </div>
