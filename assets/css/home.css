@@ -86,7 +86,6 @@ body { overflow-x: clip; }
 
 /* -- the intro: headline, lede and the two actions -------------------------- */
 .hx__intro { display: grid; gap: 14px; }
-.hx__l { display: block; }
 .hx__title {
   margin: 0;
   font-size: clamp(2.125rem, 1.15rem + 4.6vw, 3.5rem);
@@ -95,7 +94,15 @@ body { overflow-x: clip; }
   letter-spacing: -0.016em;
   line-height: 1.02;
 }
-.hx__title .pv-em-gradient { display: inline-block; padding-bottom: 0.06em; letter-spacing: -0.03em; }
+/* The wordmark takes the headline's place, large (the top bar's small copy hides while it is
+   on screen; home.js). Its width follows the intro column, never wider than it. */
+.hx__title--logo { line-height: 0; white-space: normal; }
+.hx__logo { display: block; width: min(100%, clamp(16rem, 8rem + 30vw, 46rem)); height: auto; }
+.pv-topbar__brand { transition: opacity 240ms ease, visibility 0s linear 0s; }
+.pv-topbar.is-hero-brand .pv-topbar__brand { opacity: 0; visibility: hidden; transition: opacity 240ms ease, visibility 0s linear 240ms; }
+@media (prefers-reduced-motion: reduce) {
+  .pv-topbar__brand, .pv-topbar.is-hero-brand .pv-topbar__brand { transition: none; }
+}
 .hx__aside { display: grid; gap: 16px; }
 .hx__lede { margin: 0; max-width: 36rem; color: var(--pv-text-2); }
 .hx__cta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
@@ -572,7 +579,7 @@ html:not(.js) .hx__stillbox { left: 12px; right: 12px; top: var(--hx-head-px); b
   background: #000;
   box-shadow: 0 0 0 1px rgba(255, 220, 200, 0.14), 0 18px 40px -18px rgba(0, 0, 0, 0.8);
 }
-.hx-ai__pic img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 400ms ease; }
+.hx-ai__pic img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .hx-ai__pic img.is-in { opacity: 1; }
 .hx-ai__result figcaption { font-size: 0.75rem; line-height: 1.35; color: rgba(255, 236, 226, 0.78); }
 .hx-ai__runs { grid-area: runs; align-self: end; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
@@ -628,7 +635,9 @@ html:not(.js) .hx__stillbox { left: 12px; right: 12px; top: var(--hx-head-px); b
   overflow: hidden;
   background: #050B0C;
 }
-.hx-store__art img { display: block; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 400ms ease; }
+/* Visible from the start: a picture that waited for a load event to fade in stayed blank
+   on a first open in Safari. The pictures are preloaded once the page is idle (home.js). */
+.hx-store__art img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .hx-store__art img.is-in { opacity: 1; }
 .hx-store__name { padding: 5px 8px 6px; font-size: 0.6875rem; font-weight: 500; line-height: 1.25; color: rgba(236, 255, 250, 0.9); }
 .hx-store__tool:active { transform: scale(var(--pv-press)); }

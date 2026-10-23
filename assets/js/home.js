@@ -299,6 +299,9 @@ const saveData = () => {
 function warmCase(id, { first = false, asked = false } = {}) {
   if (!id) {
     if (pc && !pc.fallback && !saveData()) pc.prefetch(ORDER.filter((s) => DATA.has(s)), { first });
+    // the assistant's and the store's pictures are small: ready them too, so that a first
+    // open never shows an empty frame
+    if (!saveData()) ORDER.filter((s) => !DATA.has(s)).forEach((s) => warmCase(s));
     return;
   }
   if (DATA.has(id)) {
@@ -315,13 +318,21 @@ function warmCase(id, { first = false, asked = false } = {}) {
     if (img.complete) shown();
   });
 }
+// The hero's large wordmark stands in for the top bar's small one: the small one hides while
+// the large one is on screen and returns once the visitor scrolls past it.
+(() => {
+  const big = $('.hx__logo');
+  const bar = $('.pv-topbar');
+  if (!big || !bar || !('IntersectionObserver' in window)) return;
+  new IntersectionObserver(([e]) => bar.classList.toggle('is-hero-brand', e.isIntersecting), { threshold: 0 }).observe(big);
+})();
 const whenIdle = (fn) => ('requestIdleCallback' in window ? requestIdleCallback(fn, { timeout: 2500 }) : setTimeout(fn, 800));
 
 // the first case has formed: load the other cells when the page is idle (on a phone nothing
 // points at a tab before a tap), unless the visitor is saving data; then the tour may start
 function afterIntro() {
   formed = true;
-  if (pc && !pc.fallback && !saveData()) whenIdle(() => warmCase());
+  if (!saveData()) whenIdle(() => warmCase());
   armTour();
 }
 
