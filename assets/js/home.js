@@ -328,6 +328,23 @@ function warmCase(id, { first = false, asked = false } = {}) {
 })();
 const whenIdle = (fn) => ('requestIdleCallback' in window ? requestIdleCallback(fn, { timeout: 2500 }) : setTimeout(fn, 800));
 
+// The assistant's thinking orb: the same animated orb the viewer draws while an agent works
+// (thinking-orbs-universal 1.1.0, MIT, in assets/vendor/). It pauses by itself off screen, in a
+// hidden tab and under reduced motion. Each host names the size to draw at; CSS fits it.
+function mountOrbs() {
+  const hosts = $$('[data-orb]');
+  if (!hosts.length) return;
+  import('../vendor/thinking-orbs-1.1.0/index.js').then((lib) => {
+    hosts.forEach((host) => {
+      try {
+        lib.mountOrb(host, { state: 'working', size: +host.dataset.orb || 64, theme: 'dark' });
+        host.classList.add('is-live');
+      } catch (_) { /* the still dots stay */ }
+    });
+  }).catch(() => { /* the still dots stay */ });
+}
+whenIdle(mountOrbs);
+
 // the first case has formed: load the other cells when the page is idle (on a phone nothing
 // points at a tab before a tap), unless the visitor is saving data; then the tour may start
 function afterIntro() {
