@@ -1088,6 +1088,9 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
 }
 @media (min-width: 1080px) {
   .ex__grid { grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); }
+  /* should the assistant's column be the taller one, the tools' three bands share the
+     difference instead of leaving it at the foot (the assistant's picture takes it otherwise) */
+  .ex__tools { justify-content: space-between; }
   .ex__ai::before { inset: 28px auto 28px 0; width: 3px; height: auto; background-size: 3px 6px; background-repeat: repeat-y; }
 }
 
@@ -1168,7 +1171,8 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
 .ex__parts b { display: block; font: 500 0.8125rem / 1.35 var(--pv-font-mono); color: var(--pv-text); }
 .ex__parts code { font-size: 0.75rem; color: var(--pv-text-2); white-space: nowrap; }
 @media (min-width: 560px) {
-  .ex__anatomy { grid-template-columns: minmax(0, 1fr) 22px minmax(0, 0.96fr); align-items: center; }
+  /* the code column never narrower than tool.py's longest line, so it never scrolls */
+  .ex__anatomy { grid-template-columns: minmax(224px, 1fr) 22px minmax(0, 0.96fr); align-items: center; }
   .ex__arrow {
     position: relative;
     display: block;
@@ -1197,25 +1201,7 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
   .ex__parts { gap: 8px 12px; }
 }
 
-/* the nine gates, in the order they run (the design system's gate report) */
-.ex__gates { display: grid; gap: 12px; }
-.ex__gates-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; font-size: 0.875rem; color: var(--pv-text-2); }
-.ex__gates-head .pv-label { color: var(--pv-text); }
-.ex__gate-list { column-gap: 4px; }
-@media (min-width: 560px) {
-  .ex__gate-list { grid-template-columns: repeat(9, auto); justify-content: space-between; }
-  .ex__gate-list .pv-gate__name { overflow-wrap: normal; white-space: nowrap; }
-}
-.ex__gates-note { font-size: 0.8125rem; color: var(--pv-text-3); }
-@media (max-width: 559.98px) {
-  .ex__gate-list { display: flex; flex-wrap: wrap; gap: 9px 14px; }
-  .ex__gate-list .pv-gate { display: inline-flex; align-items: center; gap: 6px; }
-  .ex__gate-list .pv-gate::before { width: 9px; height: 9px; }
-  .ex__gates { gap: 10px; }
-}
-.ex__gates-note code { font-size: 0.75rem; color: var(--pv-caution); }
-
-/* the 12 tools: a rail on phones and tablets, all twelve at once on wide windows */
+/* the 12 tools: a rail of one row on phones and tablets, a shelf of two rows on wide windows */
 .ex__store { display: grid; gap: 10px; min-width: 0; }
 .ex__store-head { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; min-height: 34px; }
 .ex__store-head .pv-label { color: var(--pv-text); white-space: nowrap; }
@@ -1296,12 +1282,13 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
 @media (hover: none) and (max-width: 1079.98px) {
   .ex__q { display: none; }
 }
-/* wide windows: a little over four cards in view, the fifth showing that the rail goes on */
+/* wide windows: two rows of a little over four cards, the fifth column showing that the
+   shelf goes on; eight tools in view fill the column beside the assistant */
 @media (min-width: 1080px) {
-  .ex__rail { grid-auto-columns: clamp(132px, calc((100% - 30px) / 4.3), 176px); }
+  .ex__rail { grid-template-rows: repeat(2, auto); grid-auto-columns: clamp(132px, calc((100% - 30px) / 4.3), 176px); }
 }
 
-/* the assistant: 13 MCP tools in four groups */
+/* the assistant: its MCP tools in four groups, one point each on the ring */
 .ex__mcp { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: center; }
 .ex__ring { position: relative; width: min(172px, 52vw); aspect-ratio: 1; margin: 0 auto; }
 .ex__ring svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
@@ -1403,7 +1390,6 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
   color: var(--pv-text);
 }
 .ex__g-name::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--g); box-shadow: 0 0 8px var(--g); }
-.ex__g-n { font: 500 var(--pv-text-xs) / 1 var(--pv-font-mono); color: var(--g); }
 .ex__g-line { font-size: 0.8125rem; line-height: 1.4; color: var(--pv-text-2); }
 .ex__switch {
   display: inline-flex;
@@ -1419,7 +1405,7 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
 }
 .ex__switch > * { padding: 4px 7px; border-radius: var(--pv-radius-pill); }
 .ex__switch b { font-weight: 600; color: var(--pv-text); background: color-mix(in srgb, var(--pv-violet) 30%, transparent); }
-/* 172 px keeps the thirteen 24 px points 24 px apart (WCAG 2.5.8), phones included */
+/* 172 px keeps the ring's 24 px points 24 px apart (WCAG 2.5.8), phones included */
 @media (min-width: 520px) {
   .ex__mcp { grid-template-columns: 172px minmax(0, 1fr); gap: 20px; }
   .ex__ring { width: 172px; }
@@ -1438,8 +1424,10 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
   .ex__example { padding: 14px; gap: 12px; }
   .ex__quote p { font-size: 1.125rem; }
 }
-/* phones: the ring beside the assistant's heading, the four groups under both */
-@media (min-width: 360px) and (max-width: 519.98px) {
+/* the ring beside the assistant's heading and the four groups under both, wherever the
+   groups beside the ring would be too narrow for Steer's Off / Ask / Allow switch: phones,
+   small tablets and the narrowest two-column windows */
+@media (min-width: 360px) and (max-width: 639.98px), (min-width: 1080px) and (max-width: 1249.98px) {
   .ex__ai { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; }
   .ex__ai > * { grid-column: 1 / -1; }
   .ex__ai > .ex__head { grid-column: 1; grid-row: 1; align-self: center; }
@@ -1447,8 +1435,19 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
   .ex__ai .ex__ring { grid-column: 2; grid-row: 1; width: 172px; margin: 0; }
   .ex__ai .ex__groups { grid-column: 1 / -1; }
 }
+/* there, the example's row takes what the deck's taller column leaves (see .ex__ex-media) */
+@media (min-width: 1080px) and (max-width: 1249.98px) {
+  .ex__ai { grid-template-rows: auto auto auto minmax(0, 1fr) auto; }
+  .ex__ai > .ex__head { align-self: start; }   /* level with the eyebrow across the divider */
+}
 @media (max-width: 399.98px) {
   .ex__card { padding-inline: 16px; }
+}
+/* a tighter switch where Steer's card is at its narrowest: small phones, and the two-column
+   windows just wide enough for the groups beside the ring */
+@media (max-width: 399.98px), (min-width: 1250px) and (max-width: 1359.98px) {
+  .ex__switch { letter-spacing: 0.04em; }
+  .ex__switch > * { padding-inline: 4px; }
 }
 
 .ex__runtimes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
@@ -1490,8 +1489,14 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
   .ex__ex-media { aspect-ratio: auto; height: clamp(108px, 30vw, 136px); }
   .ex__ex-media img { object-position: 50% 58%; }
 }
+/* Two columns: the deck's columns end together. The example's picture is at least 2.05 : 1
+   (the ::before holds that height) and grows into whatever the other column leaves, so
+   neither column ends in an empty band, at any width. */
 @media (min-width: 1080px) {
-  .ex__ex-media { aspect-ratio: 2.05; }
+  .ex__ai .ex__example { flex: 1 1 auto; grid-template-rows: auto minmax(0, 1fr); }
+  .ex__ex-pic { grid-template-rows: minmax(0, 1fr) auto; }
+  .ex__ex-media { aspect-ratio: auto; }
+  .ex__ex-media::before { content: ""; display: block; padding-top: calc(100% / 2.05); }
   .ex__ex-media img { object-position: 50% 56%; }
 }
 
@@ -1631,9 +1636,6 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
     transition-delay: calc(var(--i, 0) * var(--pv-stagger));
   }
 
-  /* the nine gates pass in the order they run, once, as the deck arrives */
-  .ex__grid.is-in .ex__gate-list .pv-gate::before { animation: gate-pass 420ms var(--pv-ease-out) backwards; animation-delay: calc(300ms + var(--gi, 0) * 80ms); }
-
   /* once the load sequence is over it is gone for good: a later layout change (a
      window resized across a breakpoint) must not replay it */
   .hx-settled .hx__lede,
@@ -1643,7 +1645,6 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
 @keyframes hx-in { from { opacity: 0; transform: translateY(6px); } }
 @keyframes hx-deck { from { opacity: 0; transform: translateY(14px); } }
 @keyframes ring-lit { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: none; } }
-@keyframes gate-pass { from { transform: scale(0.4); opacity: 0.2; } to { transform: none; opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {
   /* a switch is instant: no field travels, no words fade */

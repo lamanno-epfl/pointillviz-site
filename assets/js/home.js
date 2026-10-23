@@ -7,7 +7,7 @@
  * 2 the workspace: tabs Data / Views / Analyses, arrow keys across the twelve pictures,
  *   a tab's pictures load when it is hovered, focused or chosen
  * 3 moving pictures: play when on screen, pause off screen, a pause button each
- * 4 the 12 tools and the assistant's 13 MCP tools
+ * 4 the 12 tools and the assistant's MCP tools
  * 5 the section index, entrances below the fold
  * 6 the address: #3d, #atlas, #multiomics, #assistant, #tool-store name a case; #data,
  *   #views, #analyses a tab
@@ -909,7 +909,7 @@ function initRing() {
     li.addEventListener('pointerenter', () => focusGroup(li.dataset.g));
     li.addEventListener('pointerleave', () => { if (!picked) focusGroup(null); });
   });
-  // each of the 13 points is one MCP tool, a button: point at it, tap it or focus it
+  // each point is one MCP tool, a button: point at it, tap it or focus it
   const pick = $('.ex__ring-pick', ring);
   const pts = $$('.ex__pt', ring);
   let picked = null;
@@ -992,7 +992,6 @@ function initIndex() {
  * visitor first scrolls and it is still wholly below the screen, so the page reads complete
  * without script, in a full-page capture, and under reduced motion. */
 function initReveals() {
-  $$('.ex__gate-list .pv-gate').forEach((g, i) => g.style.setProperty('--gi', i));
   if (reduced() || !('IntersectionObserver' in window)) return;
   const items = [...$$('[data-reveal]'), $('.ex__ring')].filter(Boolean);
   const io = new IntersectionObserver((entries) => {
