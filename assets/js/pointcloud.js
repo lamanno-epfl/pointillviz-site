@@ -8,7 +8,7 @@
  *
  *   const pc = await PointCloud.mount(canvasOrContainer, {
  *     manifestUrl: 'assets/data/hero/manifest.json',   // required (resolved against the page)
- *     state: '2d',              // first state: '2d' | '3d' | 'atlas' | 'multiomics'
+ *     state: '2d',              // first state: '2d' | '3d' | 'tma' | 'multiomics'
  *     particleBudget: 'auto',   // 'auto': 40,000, or the 15,000-particle prefix when the viewport's
  *                               // short side is under 600 px; or a number
  *     background: null,         // CSS colour or 'transparent'; null: the page's --pv-bg, else #06070D
@@ -48,7 +48,7 @@
  *   pc.setState('3d');          // → Promise<boolean>: true when the morph finished, false if
  *                               //   another setState took over; states load lazily, so it may wait
  *   pc.setState('3d', { instant: true });
- *   pc.setView('atlas', frame);  // one move: morph to a state and land on a new framing
+ *   pc.setView('tma', frame);   // one move: morph to a state and land on a new framing
  *   pc.setBackground('#0A0C18'[, lift]);
  *   pc.setFrame({ left: 0.42 }); // after a layout change (jumps)
  *   pc.setFrame(frame, { frames, glide: 600 });  // new framing, the camera glides to it
@@ -65,8 +65,8 @@
  *   pc.state        current state id          pc.states    the manifest's states (label, legend, ...)
  *   pc.manifest     the manifest              pc.fallback  true when the poster is shown instead
  *   pc.umPerPixel() µm per CSS pixel at the centre of the view (for a scale bar), or null
- *   pc.anchors()    atlas: [{ label, accent, sections, cells, x, y }], CSS px of each condition
- *                   group's first tile (for labels); [] in other states
+ *   pc.anchors()    tissue array: [{ label, code, x, y }], CSS px of the centre of each tissue's
+ *                   cells (for its name); [] in other states
  *   pc.plateAnchors() multi-omics: [{ name, hue, corners: [{ x, y } × 4] }], CSS px of each
  *                   plate's corners (for labels); [] in other states or while morphing
  *
@@ -90,6 +90,8 @@
  * and the budget), occluded through a core-only depth pre-pass (no hard edges), depth-cued in 3D,
  * and lifted by a quarter-resolution bloom. The camera blends on its own clock (camAnim), so a
  * new framing (a resize, a layout change) glides instead of jumping, with or without a morph.
+ * The tissue array draws fewer cells than N (its manifest entry's drawn / drawnPhone): its other
+ * particles take the palette's hidden entry (alpha 0, not pickable) and fade out as they arrive.
  *
  * This file merges the homepage concepts' engine changes (2026-10-22): per-state frames
  * (concepts/home-a), the camera clock, setView, liftColors and plateAnchors (concepts/home-b),
@@ -99,7 +101,7 @@
 const DEG = Math.PI / 180;
 const TAU = Math.PI * 2;
 // point diameter as a multiple of the state's mean spacing
-const SIZE_K = { section: 1.2, volume: 1.0, montage: 1.25, plates: 1.16 };
+const SIZE_K = { section: 1.2, volume: 1.0, array: 1.0, plates: 1.16 };
 const LIFT = [0.030, 0.034, 0.060];   // the background lift's default tint
 
 // ── small math ─────────────────────────────────────────────────────────────
@@ -336,28 +338,6 @@ function program(gl, vs, fs) {
   const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
   for (let i = 0; i < n; i++) { const info = gl.getActiveUniform(p, i); u[info.name] = gl.getUniformLocation(p, info.name); }
   return { p, u };
-}
-
-// ── atlas montage layout (mirrors tools/build_hero_data.py: atlas_layout) ──
-// Groups in order, each starting a new row; a small group may follow another on the same row,
-// after a one-tile gap, only if every group on that row fits on it whole. `orphans` counts
-// groups whose last row holds a lone tile or two (the layout picker avoids them).
-function atlasLayout(sizes, cols) {
-  const tiles = [], starts = [];
-  let row = -1, col = cols, clean = false, orphans = 0;
-  sizes.forEach((n) => {
-    if (row >= 0 && clean && col + 1 + n <= cols) col += 1;
-    else { row += 1; col = 0; clean = true; }
-    starts.push(tiles.length);
-    const r0 = row;
-    for (let k = 0; k < n; k++) {
-      if (col >= cols) { row += 1; col = 0; clean = false; }
-      tiles.push([row, col]);
-      col += 1;
-    }
-    if (row > r0 && col <= Math.min(2, Math.floor(cols / 3))) orphans += 1;
-  });
-  return { tiles, rows: row + 1, starts, orphans };
 }
 
 // ── the engine ─────────────────────────────────────────────────────────────
@@ -726,9 +706,16 @@ class Hero {
       const cells = st.drawnCells || N;
       spacing = Math.sqrt((W * s) * (H * s) / cells) * 1.35;
       d.umPerUnit = 1 / s;
-    } else if (st.kind === 'montage') {
-      this._montage(d, pos);
-      spacing = occupancySpacing(pos, N, 220);
+    } else if (st.kind === 'array') {
+      // a slide of tissues, drawn like a section; the dots' mean spacing comes from the build
+      // (the tissues' area over the cells drawn at the full budget), since most particles are hidden
+      const [W, H] = st.frame.size, s = 2 / Math.max(W, H);
+      for (let i = 0; i < N; i++) {
+        pos[i * 3] = (P[i * 2] * q - 0.5) * W * s;
+        pos[i * 3 + 2] = (P[i * 2 + 1] * q - 0.5) * H * s;
+      }
+      spacing = st.frame.spacing ? st.frame.spacing * s : occupancySpacing(pos, N, 260);
+      d.umPerUnit = 1 / s;
     } else if (st.kind === 'plates') {
       const side = 2, gap = (st.frame.plateGap ?? 0.55) * side;
       const f0 = st.frameIndex[0], L = st.plates[0].levels;
@@ -747,52 +734,6 @@ class Hero {
     d.spacing = spacing;
     d.bounds = bounds(pos, N);
     d.gpu && this._upload(d);
-  }
-
-  _montage(d, pos) {
-    const { st, raw } = d, N = this.N, P = raw.pos, q = 1 / 65535;
-    const fr = st.frame, gap = fr.gap ?? 0.16, ggap = fr.groupGap ?? 0.42;
-    const sizes = st.groups.map((g) => g.sections);
-    // pick the column count that gives the largest tiles in the frame rect
-    const rect = this._rect(d.st.id);
-    const aspect = rect.w / Math.max(1, rect.h);
-    let best = null;
-    for (let cols = 3; cols <= 13; cols++) {
-      const L = atlasLayout(sizes, cols);
-      const groupRows = new Set(L.starts.map((s) => L.tiles[s][0])).size;
-      const Wm = cols * (1 + gap) - gap;
-      const Hm = (L.rows * (1 + gap) - gap + ggap * (groupRows - 1)) * 0.97;
-      const tile = Math.min(aspect / Wm, 1 / Hm) * Math.pow(0.85, L.orphans);
-      if (!best || tile > best.tile * 1.0001) best = { cols, L, tile, Wm, Hm };
-    }
-    const { L, cols } = best;
-    d.cols = cols;
-    // row offsets: extra space before each row where a group starts (except the first row)
-    const rowStart = new Map();
-    L.starts.forEach((s) => rowStart.set(L.tiles[s][0], true));
-    const rowY = [];
-    let y = 0;
-    for (let r = 0; r < L.rows; r++) {
-      if (r > 0 && rowStart.get(r)) y += ggap;
-      rowY.push(y);
-      y += 1 + gap;
-    }
-    const Hm = y - gap, Wm = cols * (1 + gap) - gap;
-    const ext = fr.tile, inner = 0.94;
-    const tiles = st.sections.map((s, i) => {
-      const [r, c] = L.tiles[i];
-      return { x: c * (1 + gap) + 0.5 - Wm / 2, z: rowY[r] + 0.5 - Hm / 2, w: s.size[0] / ext * inner, h: s.size[1] / ext * inner };
-    });
-    const k = 2.6 / Math.max(Wm, Hm);         // normalise: the montage's longer side is 2.6 units
-    for (let i = 0; i < N; i++) {
-      const t = tiles[raw.grp[i]];
-      pos[i * 3] = (t.x + (P[i * 2] * q - 0.5) * t.w) * k;
-      pos[i * 3 + 2] = (t.z + (P[i * 2 + 1] * q - 0.5) * t.h) * k;
-    }
-    d.tiles = tiles.map((t) => ({ x: t.x * k, z: t.z * k, w: t.w * k, h: t.h * k }));
-    d.tilePitch = k;
-    d.groupStarts = L.starts;
-    d.umPerUnit = ext / inner / k;
   }
 
   _upload(d) {
@@ -1326,16 +1267,9 @@ class Hero {
     this._relayout();
   }
 
-  // the atlas montage re-lays out for the new aspect; every resting camera refits
+  // every resting camera refits to the new size
   _relayout() {
-    for (const d of this.data.values()) {
-      if (d.st.kind === 'montage') {
-        const cols = d.cols;
-        this._world(d);
-        if (d.cols !== cols && d.gpu) this._upload(d);
-      }
-      d.cam = null;
-    }
+    for (const d of this.data.values()) d.cam = null;
   }
 
   // ── events ───────────────────────────────────────────────────────────────
@@ -1490,9 +1424,14 @@ class Hero {
   _info(i) {
     const d = this.dst.d, st = d.st, idx = d.raw.col[i], pe = st.palette[idx];
     const info = { state: st.id, index: i, name: pe.name, color: pe.color, detail: '', x: this._sx[i], y: this._sy[i] };
-    if (st.kind === 'montage') {
-      const sec = st.sections[d.raw.grp[i]], g = st.groups[sec.group];
-      info.detail = `${g.label} · ${st.label.tissue.toLowerCase()}`;
+    if (st.kind === 'array') {
+      // the tissue, and the gene's level there
+      const t = st.tissues && st.tissues[d.raw.grp[i]], sc = st.scale;
+      const k = sc ? idx / (sc.levels - 1) : 0;
+      const v = sc ? sc.range[0] + (sc.range[1] - sc.range[0]) * k : 0;
+      const name = t ? t.name.charAt(0).toUpperCase() + t.name.slice(1) : st.label.tissue;
+      info.name = `${name} · ${st.label.gene} ${k >= 0.999 ? '≥ ' : ''}${v.toFixed(1)}`;
+      info.detail = sc ? sc.unit : '';
     } else if (st.kind === 'plates') {
       const pl = st.plates.find((p) => idx >= p.first && idx < p.first + p.levels);
       if (pl) {
@@ -1531,7 +1470,7 @@ class Hero {
   }
 
   // new insets. { frames } replaces the per-state rects as well; { glide: ms } lets the camera
-  // glide to the new fit (and an atlas montage flow to a new tile layout) instead of jumping
+  // glide to the new fit instead of jumping
   setFrame(frame, { frames, glide = 0 } = {}) {
     const fs = frames === undefined ? this.opts.frames : frames;
     if (this.fallback || !this.gl) { this.opts.frame = frame; this.opts.frames = fs; return; }
@@ -1611,47 +1550,16 @@ class Hero {
 
   _frameKey(frame, frames) { return JSON.stringify([frame || {}, frames || {}]); }
 
-  // new framing: the camera glides from where it is; an atlas montage that changes its tile
-  // layout flows to the new layout instead of jumping
+  // new framing: the camera glides from where it is to the new fit
   _reframe(frame, frames, dur) {
     if (this._frameKey(frame, frames) === this._frameKey(this.opts.frame, this.opts.frames)) return false;
     const now = performance.now();
     // the camera without its sway and the visitor's orbit, which stays applied on top
     const camFrom = this._cam && dur > 0 ? this._camNow() : null;
-    const cur = this.dst && this.dst.d;
-    const dstMontage = !!(cur && cur.st.kind === 'montage');
-    const srcMontage = !!(this.morph && this.src.kind === 'state' && this.src.d.st.kind === 'montage');
-    let old = null;
-    if (this.morph && (srcMontage || dstMontage)) {
-      // freeze every particle where it is before any montage is laid out again
-      this.snapLift = this._liftNow();
-      this._snapshot();
-      this.src = { kind: 'snap', rp: this._rpNow() };
-      old = 'snap';
-    } else if (!this.morph && dstMontage && dur > 0 && cur.gpu) {
-      old = { pos: new Float32Array(cur.world), col: new Uint8Array(cur.col), size: new Uint8Array(cur.size) };
-    }
     this.opts.frame = frame;
     this.opts.frames = frames;
     this._fitKey = `${this.cssW}x${this.cssH}:${this._frameKey(frame, frames)}:${this.budget}`;
-    const cols = dstMontage ? cur.cols : null;
-    for (const d of this.data.values()) {
-      if (d.st.kind === 'montage') this._world(d);
-      d.cam = null;
-    }
-    if (old === 'snap' || (old && cur.cols !== cols)) {
-      if (old !== 'snap') {
-        this.snapBase = this._baseOf({ kind: 'state', d: cur });
-        this.snapRadius = Math.max(cur.bounds[3] - cur.bounds[0], cur.bounds[4] - cur.bounds[1], cur.bounds[5] - cur.bounds[2]) * 0.5 || 1;
-        this.snapLift = this._liftOf({ kind: 'state', d: cur });
-        this._snapUpload(old.pos, old.col, old.size);
-        this.src = { kind: 'snap', rp: cur.rp };
-      }
-      const prev = this.morph;
-      this.morph = { t: 0, start: now, dur: this.opts.duration, resolve: prev && prev.resolve, promise: prev && prev.promise };
-      this._sweep(this.src);
-      dur = Math.max(dur, this.opts.duration);
-    }
+    for (const d of this.data.values()) d.cam = null;
     this.camAnim = camFrom ? { from: camFrom, start: now, dur } : null;
     this._kick();
     return true;
@@ -1679,7 +1587,6 @@ class Hero {
     this._wantFrame = frame ? [frame, fs] : null;
     return this._load(id).then((d) => {
       if (this.destroyed || this._want !== id) return false;
-      const fromMontage = !!(this.dst && this.dst.d && this.dst.d.st.kind === 'montage' && this.dst.d !== d);
       const p = this._go(d, quick);
       const w = this._wantFrame;
       if (w && this._frameKey(w[0], w[1]) !== this._frameKey(this.opts.frame, this.opts.frames)) {
@@ -1687,10 +1594,7 @@ class Hero {
         this.opts.frame = w[0];
         this.opts.frames = w[1];
         this._fitKey = `${this.cssW}x${this.cssH}:${this._frameKey(w[0], w[1])}:${this.budget}`;
-        if (d.st.kind === 'montage') this._world(d);
         for (const dd of this.data.values()) dd.cam = null;
-        if (fromMontage && !this.morph) this._relayout();
-        else if (fromMontage) this._pendingLayout = true;
       }
       return p;
     });
@@ -1715,17 +1619,18 @@ class Hero {
     });
   }
 
+  // screen positions (CSS px) of the tissue array's tissues, each at the centre of its cells:
+  // [{ label, code, x, y }]; [] in other states
   anchors() {
     const d = this.dst && this.dst.d;
-    if (!d || d.st.kind !== 'montage' || !this._cam) return [];
+    if (!d || d.st.kind !== 'array' || !this._cam || !d.st.tissues) return [];
     const vp = this._vp, W = this.cssW, H = this.cssH;
-    return d.st.groups.map((g, k) => {
-      const t = d.tiles[d.groupStarts[k]];
-      const half = d.tilePitch / 2;            // the tile's top-left corner
-      const X = t.x - half, Z = t.z - half;
+    const [FW, FH] = d.st.frame.size, s = 2 / Math.max(FW, FH);
+    return d.st.tissues.map((t) => {
+      const X = (t.u - 0.5) * FW * s, Z = (t.v - 0.5) * FH * s;
       const w = vp[3] * X + vp[11] * Z + vp[15];
       return {
-        label: g.label, accent: g.accent, sections: g.sections, cells: g.cells,
+        label: t.name, code: t.code,
         x: ((vp[0] * X + vp[8] * Z + vp[12]) / w * 0.5 + 0.5) * W,
         y: (0.5 - (vp[1] * X + vp[9] * Z + vp[13]) / w * 0.5) * H,
       };

@@ -38,10 +38,12 @@ body { overflow-x: clip; }
 @property --hx-wash { syntax: "<color>"; inherits: false; initial-value: #E2B25A; }
 
 :root {
-  /* the design system's four case colours (pv.css §4), and this page's two more */
+  /* the design system's case colours (pv.css §4), and this page's three more */
+  --pv-case-tma: #3FAEF0;     /* the tissue array: azure, apart from the gold, violet, pink, orange and mint */
   --pv-case-ai: #FF8A3D;      /* the assistant: orange, a tool call's colour in Fig. 2 */
   --pv-case-store: #6FE0BD;   /* the Tool Store: mint, the store's own accent */
 }
+[data-case="tma"] { --pv-case: var(--pv-case-tma); }
 [data-case="ai"] { --pv-case: var(--pv-case-ai); }
 [data-case="store"] { --pv-case: var(--pv-case-store); }
 
@@ -49,7 +51,7 @@ body { overflow-x: clip; }
    glow on the deep part, the names sit in ink on the bright part */
 .hx [data-case="2d"]    { --hx-c1: #B4531A; --hx-c2: #4A1608; --hx-c3: #160806; }
 .hx [data-case="3d"]    { --hx-c1: #5B32D6; --hx-c2: #24105E; --hx-c3: #0B0720; }
-.hx [data-case="atlas"] { --hx-c1: #1477C4; --hx-c2: #082E63; --hx-c3: #040C1E; }
+.hx [data-case="tma"]   { --hx-c1: #0E66B4; --hx-c2: #062248; --hx-c3: #030916; }
 .hx [data-case="omics"] { --hx-c1: #C42375; --hx-c2: #520A3A; --hx-c3: #170514; }
 .hx [data-case="ai"]    { --hx-c1: #D6402A; --hx-c2: #620F1F; --hx-c3: #1A0509; }
 .hx [data-case="store"] { --hx-c1: #11A08A; --hx-c2: #064542; --hx-c3: #031313; }
@@ -175,7 +177,7 @@ body { overflow-x: clip; }
 .hx__col.is-open .hx__peek { opacity: 0; transition: opacity 160ms ease; }
 .hx__col[data-state="2d"] .hx__peek { background-image: url(../media/hero/hint-2d-h.webp); }
 .hx__col[data-state="3d"] .hx__peek { background-image: url(../media/hero/hint-3d-h.webp); }
-.hx__col[data-state="atlas"] .hx__peek { background-image: url(../media/hero/hint-atlas-h.webp); }
+.hx__col[data-state="tma"] .hx__peek { background-image: url(../media/hero/hint-tma-h.webp); }
 .hx__col[data-state="multiomics"] .hx__peek { background-image: url(../media/hero/hint-multiomics-h.webp); }
 .hx__col[data-state="ai"] .hx__peek { background-image: url(../media/hero/hint-ai-h.webp); }
 .hx__col[data-state="store"] .hx__peek { background-image: url(../media/hero/hint-store-h.webp); }
@@ -449,6 +451,22 @@ html:not(.js) .hx__stillbox { left: 12px; right: 12px; top: var(--hx-head-px); b
 }
 .hx__scale i { display: block; height: calc(3px * var(--k)); width: 64px; border-radius: 2px; background: #F4EEE2; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
 .hx__scale[data-off] { visibility: hidden; }
+/* the tissue array's gene key: the gene, and its scale from low to high (home.js draws the
+   ramp from the state's own palette into --ramp) */
+.hx__gene {
+  display: none;
+  align-items: center;
+  gap: calc(7px * var(--k));
+  margin: 0 0 0 auto;
+  font: 500 calc(0.6875rem * var(--k)) / 1 var(--pv-font-mono);
+  letter-spacing: 0.06em;
+  color: var(--pv-text-2);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+.hx__gene.is-on { display: flex; }
+.hx__gene b { margin-right: calc(3px * var(--k)); font: italic 400 calc(0.8125rem * var(--k)) / 1 var(--pv-font-sans); color: var(--pv-text); }
+.hx__gene i { display: block; width: calc(72px * var(--k)); height: calc(6px * var(--k)); border-radius: 3px; background: var(--ramp, #F4EEE2); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
+.hx__gene.is-on + .hx__scale:not([data-off]) { margin-left: calc(18px * var(--k)); }
 .is-still .hx__scale,
 .is-still .hx__motion,
 .is-still .hx__hint { display: none; }
@@ -464,8 +482,8 @@ html:not(.js) .hx__stillbox { left: 12px; right: 12px; top: var(--hx-head-px); b
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
-/* names on the cloud itself: the atlas's condition groups over their first tile,
-   the multi-omics plates beside each plate, in their colours */
+/* names on the cloud itself: the tissue array's tissues at the centre of their cells, the
+   multi-omics plates beside each plate in their colours */
 .hx__marks { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 .hx__marks span {
   position: absolute;
@@ -484,6 +502,21 @@ html:not(.js) .hx__stillbox { left: 12px; right: 12px; top: var(--hx-head-px); b
   opacity: 0;
   transition: opacity 280ms ease;
 }
+/* a tissue's name, centred on its cells, wrapping to a narrow block so neighbours stay clear */
+.hx__marks--tissues span {
+  display: block;
+  max-width: 11ch;
+  padding: 0;
+  font-size: calc(0.625rem * var(--k));
+  line-height: 1.3;
+  letter-spacing: 0.1em;
+  text-align: center;
+  white-space: normal;
+  color: rgba(244, 238, 226, 0.88);
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.95);
+}
+@media (max-width: 899.98px) { .hx__marks--tissues span { font-size: 0.5625rem; letter-spacing: 0.06em; } }
+@media (max-width: 599.98px) { .hx__marks--tissues { display: none; } }
 .hx__marks--plates span { padding: 0; font-size: calc(0.75rem * var(--k)); letter-spacing: 0.06em; text-transform: none; }
 .hx__marks--plates span::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--g); box-shadow: 0 0 8px var(--g); }
 .hx__marks.is-on span { opacity: 1; }
@@ -742,7 +775,7 @@ html:not(.js) .hx__stillbox { left: 12px; right: 12px; top: var(--hx-head-px); b
   .hx__peek { inset: 38% 0 0; -webkit-mask: linear-gradient(transparent, #000 26%); mask: linear-gradient(transparent, #000 26%); }
   .hx__col[data-state="2d"] .hx__peek { background-image: url(../media/hero/hint-2d-v.webp); }
   .hx__col[data-state="3d"] .hx__peek { background-image: url(../media/hero/hint-3d-v.webp); }
-  .hx__col[data-state="atlas"] .hx__peek { background-image: url(../media/hero/hint-atlas-v.webp); }
+  .hx__col[data-state="tma"] .hx__peek { background-image: url(../media/hero/hint-tma-v.webp); }
   .hx__col[data-state="multiomics"] .hx__peek { background-image: url(../media/hero/hint-multiomics-v.webp); }
   .hx__col[data-state="ai"] .hx__peek { background-image: url(../media/hero/hint-ai-v.webp); }
   /* a small orb just above the tissue, where the stripe's picture fades in (the peek starts at 38%) */

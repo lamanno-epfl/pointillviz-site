@@ -1,15 +1,16 @@
 /* pointillviz.com · the homepage (an ES module, no dependencies)
  * 0 page scale: above 1440 × 900 the page is drawn k times larger (home.css, section 0)
- * 1 the hero: six cases as colour fields (2D, 3D, atlas, multi-omics, the assistant, the
- *   store), one open at a time; real cells of the four datasets (pointcloud.js) fly into the
- *   open field; the names on the cloud, the scale bar, the cell under the pointer, still /
- *   play, a case that is still loading, and a one-time tour of the six when the page sits idle
+ * 1 the hero: six cases as colour fields (2D, 3D, the tissue array, multi-omics, the assistant,
+ *   the store), one open at a time; real cells of the four datasets (pointcloud.js) fly into the
+ *   open field; the names on the cloud, the gene key, the scale bar, the cell under the pointer,
+ *   still / play, a case that is still loading, and a one-time tour of the six when the page
+ *   sits idle
  * 2 the workspace: tabs Data / Views / Analyses, arrow keys across the twelve pictures,
  *   a tab's pictures load when it is hovered, focused or chosen
  * 3 moving pictures: play when on screen, pause off screen, a pause button each
  * 4 the 12 tools and the assistant's MCP tools
  * 5 the section index, entrances below the fold
- * 6 the address: #3d, #atlas, #multiomics, #assistant, #tool-store name a case; #data,
+ * 6 the address: #3d, #tissue-array, #multiomics, #assistant, #tool-store name a case; #data,
  *   #views, #analyses a tab
  */
 import { PointCloud } from './pointcloud.js';
@@ -38,10 +39,10 @@ scale();
 // The six cases, in the deck's order. Four draw real cells (pointcloud.js); the assistant and
 // the store are pages of their own. A tab names its case and nothing more: no dataset details
 // and no numbers (HOMEPAGE_CHANGES items 1–3); each case's line is in its panel.
-const ORDER = ['2d', '3d', 'atlas', 'multiomics', 'ai', 'store'];
-const DATA = new Set(['2d', '3d', 'atlas', 'multiomics']);
-const TONE = { '2d': '2d', '3d': '3d', atlas: 'atlas', multiomics: 'omics', ai: 'ai', store: 'store' };
-const NOUN = { '2d': '2D section', '3d': '3D volume', atlas: 'atlas', multiomics: 'multi-omics section' };
+const ORDER = ['2d', '3d', 'tma', 'multiomics', 'ai', 'store'];
+const DATA = new Set(['2d', '3d', 'tma', 'multiomics']);
+const TONE = { '2d': '2d', '3d': '3d', tma: 'tma', multiomics: 'omics', ai: 'ai', store: 'store' };
+const NOUN = { '2d': '2D section', '3d': '3D volume', tma: 'tissue array', multiomics: 'multi-omics section' };
 const POSTER = (id) => `assets/data/hero/poster-${id}.webp`;
 
 const hero = $('.hx');
@@ -54,8 +55,9 @@ const scaleBar = $('#hx-scale');
 const motion = $('#hx-motion');
 const tip = $('#hx-tip');
 const live = $('#hx-live');
-const groupsBox = $('#hx-groups');
+const tissuesBox = $('#hx-tissues');
 const platesBox = $('#hx-plates');
+const geneKey = $('#hx-gene');
 const caseTabs = $$('.hx__tab');
 const cols = $$('.hx__col');
 const tabFor = (id) => caseTabs.find((b) => b.dataset.state === id);
@@ -114,8 +116,8 @@ function geometry(id) {
 }
 
 // Where a data case's cells rest: its open field, under its name and line, above a strip for
-// still / play, the 3D hint and the scale bar. The multi-omics plates keep room for their names
-// on the right, the atlas above its rows. The same rect places the focus ring and the still.
+// still / play, the 3D hint, the gene key and the scale bar. The multi-omics plates keep room
+// for their names on the right. The same rect places the focus ring and the still.
 // The cells start under the case's line, however many lines it wraps to: its bottom is read
 // inside its panel, whose own layout is final even while its field is still opening.
 function headOf(id, g) {
@@ -136,7 +138,6 @@ function place(id) {
     bottom: Math.round(g.H - (o.y + o.h) + stripH + 14 * k),
   };
   if (id === 'multiomics') f.right += Math.round((g.across ? 96 : 80) * k);
-  if (id === 'atlas') f.top += Math.round(16 * k);
   setVar('--f-l', `${f.left}px`);
   setVar('--f-t', `${f.top}px`);
   setVar('--f-r', `${f.right}px`);
@@ -223,12 +224,13 @@ function toCells(id) {
     pc.setFrame(f, { frames: null });
     pc.setState(id);
     drawn = id;
+    placeKey(pc);
     return;
   }
   if (id !== pc.state && !pc.loaded(id)) setBusy(id);
   drawn = id;
   pc.setView(id, f, { frames: null, glide: reduced() ? 0 : 900 }).then((done) => {
-    if (done) { drawScale(pc); placeGroups(pc); placePlates(pc); }
+    if (done) { drawScale(pc); placeTissues(pc); placePlates(pc); placeKey(pc); }
   }).catch((err) => { console.warn(err); failed(id); });
 }
 
@@ -355,23 +357,37 @@ function afterIntro() {
 
 /* -- on the cloud --------------------------------------------------------------- */
 
-// The atlas's condition groups, each named over its first tile.
-function placeGroups(p) {
+// The tissue array's tissues, each named at the centre of its cells.
+function placeTissues(p) {
   const a = p.anchors ? p.anchors() : [];
   const on = a.length > 0 && !p._settling;
-  groupsBox.classList.toggle('is-on', on);
+  tissuesBox.classList.toggle('is-on', on);
   if (!a.length) return;
-  if (groupsBox.childElementCount !== a.length) {
-    groupsBox.replaceChildren(...a.map((g) => {
+  if (tissuesBox.childElementCount !== a.length) {
+    tissuesBox.replaceChildren(...a.map((t) => {
       const span = document.createElement('span');
-      span.style.setProperty('--g', g.accent);
-      span.textContent = g.label;
+      span.textContent = t.label;
       return span;
     }));
   }
-  a.forEach((g, k) => {
-    groupsBox.children[k].style.transform = `translate(${g.x.toFixed(1)}px, calc(${g.y.toFixed(1)}px - 100%))`;
+  a.forEach((t, k) => {
+    tissuesBox.children[k].style.transform = `translate(calc(${t.x.toFixed(1)}px - 50%), calc(${t.y.toFixed(1)}px - 50%))`;
   });
+}
+
+// The tissue array's gene key: the gene, and its scale from low to high, drawn from the
+// state's own palette so the key is the colour the cells wear.
+function placeKey(p) {
+  const st = p.states && p.states.find((s) => s.id === 'tma');
+  const on = !!st && p.state === 'tma' && open === 'tma' && !p._settling;
+  geneKey.classList.toggle('is-on', on);
+  if (!on || geneKey.dataset.ready != null) return;
+  const n = st.scale ? st.scale.levels : st.palette.length;
+  const stops = [];
+  for (let k = 0; k <= 12; k++) stops.push(st.palette[Math.round((k / 12) * (n - 1))].color);
+  geneKey.style.setProperty('--ramp', `linear-gradient(90deg, ${stops.join(', ')})`);
+  geneKey.querySelector('b').textContent = st.label.gene || st.scale.gene;
+  geneKey.dataset.ready = '';
 }
 
 // The multi-omics plates, each named beside its right-hand corner, in its colour (Fig. 1e).
@@ -475,7 +491,7 @@ function initMotion() {
  * click. Any pointer, key, wheel, touch or scroll stops it for good, as do the pause control,
  * a hidden tab and reduced motion. A link to a case (#3d) skips it, and so does saving data:
  * the tour would download the other cases unasked. */
-const TOUR = ['3d', 'atlas', 'multiomics', 'ai', 'store', '2d'];
+const TOUR = ['3d', 'tma', 'multiomics', 'ai', 'store', '2d'];
 const tour = { on: false, done: false, seen: false, idleT: 0, stepT: 0, i: 0, wait: 0 };
 function armTour() {
   clearTimeout(tour.idleT);
@@ -618,6 +634,7 @@ async function initHero() {
           // the first case's particles (WebGL2 exists but could not start), take them from the
           // preload, so the browser does not flag it as unused (no second download).
           stillMode();
+          placeKey(p);                        // the still carries no key: name the gene over it
           const pre = document.querySelector('link[rel="preload"][as="fetch"][href$=".bin"]');
           if (pre) fetch(pre.href).catch(() => {});
         } else if (!DATA.has(open)) {
@@ -632,7 +649,7 @@ async function initHero() {
       },
       onProgress,
       onHover: showTip,
-      onFrame: (p) => { drawScale(p); placeGroups(p); placePlates(p); },
+      onFrame: (p) => { drawScale(p); placeTissues(p); placePlates(p); placeKey(p); },
     });
   } catch (err) {
     console.warn(err);
@@ -1041,7 +1058,7 @@ function initReveals() {
 
 // A case or a tab can be linked to (a talk, a post): the address follows the visitor's choice,
 // without adding history entries. The 2D section is the page's own address.
-const CASE_HASH = { '2d': '', '3d': '3d', atlas: 'atlas', multiomics: 'multiomics', ai: 'assistant', store: 'tool-store' };
+const CASE_HASH = { '2d': '', '3d': '3d', tma: 'tissue-array', multiomics: 'multiomics', ai: 'assistant', store: 'tool-store' };
 const TAB_HASH = ['data', 'views', 'analyses'];
 function readHash() {
   let h = '';

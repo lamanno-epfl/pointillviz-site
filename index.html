@@ -4,18 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script>
-    // First of all: the particles of the case the address names (the 2D section, or #3d, #atlas,
-    // #multiomics) start to load, in browsers that have WebGL2 to draw them.
+    // First of all: the particles of the case the address names (the 2D section, or #3d,
+    // #tissue-array, #multiomics) start to load, in browsers that have WebGL2 to draw them.
     (function (d) {
       try {
         if (!('WebGL2RenderingContext' in window)) return;
         var h = (location.hash || '').slice(1).toLowerCase();
+        var f = { '3d': '3d', 'tissue-array': 'tma', 'multiomics': 'multiomics' }[h] || '2d';
         var l = d.createElement('link');
         l.rel = 'preload';
         l.as = 'fetch';
         l.crossOrigin = 'anonymous';
         l.setAttribute('fetchpriority', 'high');   // ahead of the pictures further down
-        l.href = 'assets/data/hero/' + (h === '3d' || h === 'atlas' || h === 'multiomics' ? h : '2d') + '.bin';
+        l.href = 'assets/data/hero/' + f + '.bin';
         d.head.appendChild(l);
       } catch (e) {}
     })(document);
@@ -131,7 +132,7 @@
         <div class="hx__tabs" role="tablist" aria-label="Choose a case">
           <button class="hx__tab" type="button" role="tab" id="hx-t-2d" aria-controls="hx-p-2d" aria-selected="true" tabindex="0" data-case="2d" data-state="2d"><span class="hx__tab-in"><svg class="hx__ico" aria-hidden="true"><use href="assets/pv/icons.svg#i-case-2d"/></svg><span class="hx__name">2D section</span></span><span class="hx__load" aria-hidden="true"></span></button>
           <button class="hx__tab" type="button" role="tab" id="hx-t-3d" aria-controls="hx-p-3d" aria-selected="false" tabindex="-1" data-case="3d" data-state="3d"><span class="hx__tab-in"><svg class="hx__ico" aria-hidden="true"><use href="assets/pv/icons.svg#i-case-3d"/></svg><span class="hx__name">3D volume</span></span><span class="hx__load" aria-hidden="true"></span></button>
-          <button class="hx__tab" type="button" role="tab" id="hx-t-atlas" aria-controls="hx-p-atlas" aria-selected="false" tabindex="-1" data-case="atlas" data-state="atlas"><span class="hx__tab-in"><svg class="hx__ico" aria-hidden="true"><use href="assets/pv/icons.svg#i-case-atlas"/></svg><span class="hx__name">Atlas</span></span><span class="hx__load" aria-hidden="true"></span></button>
+          <button class="hx__tab" type="button" role="tab" id="hx-t-tma" aria-controls="hx-p-tma" aria-selected="false" tabindex="-1" data-case="tma" data-state="tma"><span class="hx__tab-in"><svg class="hx__ico" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><circle cx="6" cy="6.2" r="2.9"/><circle cx="14" cy="6.2" r="2.9"/><circle cx="6" cy="13.8" r="2.9"/><circle cx="14" cy="13.8" r="2.9"/></svg><span class="hx__name">Tissue array</span></span><span class="hx__load" aria-hidden="true"></span></button>
           <button class="hx__tab" type="button" role="tab" id="hx-t-multiomics" aria-controls="hx-p-multiomics" aria-selected="false" tabindex="-1" data-case="omics" data-state="multiomics"><span class="hx__tab-in"><svg class="hx__ico" aria-hidden="true"><use href="assets/pv/icons.svg#i-case-omics"/></svg><span class="hx__name">Multi-omics</span></span><span class="hx__load" aria-hidden="true"></span></button>
           <button class="hx__tab" type="button" role="tab" id="hx-t-ai" aria-controls="hx-p-ai" aria-selected="false" tabindex="-1" data-case="ai" data-state="ai"><span class="hx__tab-in"><svg class="hx__ico" aria-hidden="true"><use href="assets/pv/icons.svg#i-spark"/></svg><span class="hx__name">AI assistant</span></span><span class="hx__load" aria-hidden="true"></span></button>
           <button class="hx__tab" type="button" role="tab" id="hx-t-store" aria-controls="hx-p-store" aria-selected="false" tabindex="-1" data-case="store" data-state="store"><span class="hx__tab-in"><svg class="hx__ico" aria-hidden="true"><use href="assets/pv/icons.svg#i-tool"/></svg><span class="hx__name">Tool Store</span></span><span class="hx__load" aria-hidden="true"></span></button>
@@ -152,11 +153,11 @@
               <p class="hx__say">Orbit it, cut a slab, select through it.</p>
             </div></div>
           </div>
-          <div class="hx__col" data-case="atlas" data-state="atlas">
+          <div class="hx__col" data-case="tma" data-state="tma">
             <span class="hx__field" aria-hidden="true"></span><span class="hx__peek" aria-hidden="true"></span>
-            <div class="hx__panel" role="tabpanel" id="hx-p-atlas" aria-labelledby="hx-t-atlas"><div class="hx__panel-in">
-              <p class="hx__ttl" aria-hidden="true">Atlas</p>
-              <p class="hx__say">One live montage, statistics over every cell.</p>
+            <div class="hx__panel" role="tabpanel" id="hx-p-tma" aria-labelledby="hx-t-tma"><div class="hx__panel-in">
+              <p class="hx__ttl" aria-hidden="true">Tissue array</p>
+              <p class="hx__say">Fourteen tissues on one slide; one gene, compared across them.</p>
             </div></div>
           </div>
           <div class="hx__col" data-case="omics" data-state="multiomics">
@@ -230,13 +231,14 @@
         <div class="hx__stage" id="hx-stage">
           <div class="hx__gl" id="hx-gl"></div>
           <div class="hx__stillbox" id="hx-still"></div>
-          <div class="hx__marks" id="hx-groups" aria-hidden="true"></div>
+          <div class="hx__marks hx__marks--tissues" id="hx-tissues" aria-hidden="true"></div>
           <div class="hx__marks hx__marks--plates" id="hx-plates" aria-hidden="true"></div>
           <div class="hx__focus" aria-hidden="true"></div>
           <div class="hx__strip" id="hx-strip">
             <button class="hx__motion" id="hx-motion" type="button" aria-label="Pause the motion" data-state="playing" hidden></button>
             <p class="hx__hint" id="hx-hint" hidden><svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10a6.5 6.5 0 0 1 11.6-4"/><path d="M15.6 2.8v3.4h-3.4"/><path d="M16.5 10a6.5 6.5 0 0 1-11.6 4"/><path d="M4.4 17.2v-3.4h3.4"/></svg><span>Drag to rotate</span><kbd aria-hidden="true">←</kbd><kbd aria-hidden="true">→</kbd></p>
             <p class="hx__fallback" id="hx-fallback" hidden>This browser cannot draw the interactive view, so a still image is shown.</p>
+            <p class="hx__gene" id="hx-gene" aria-hidden="true"><b></b><span>low</span><i></i><span>high</span></p>
             <p class="hx__scale" id="hx-scale" aria-hidden="true" data-off><i></i><span></span></p>
           </div>
           <noscript><div class="hx__stillbox"><img src="assets/data/hero/poster-2d.webp" width="1600" height="1000" alt="Still image of a mouse colon section, its cells coloured by cell type"></div></noscript>
@@ -244,7 +246,7 @@
       </div>
 
       <p class="pv-sr-only" id="hx-live" aria-live="polite"></p>
-      <p class="pv-sr-only" id="hx-alt">An interactive point cloud drawn from real cells, in four cases: a tissue section, a 3D volume, an atlas of many sections, and one gene across several molecular layers. Cells keep their datasets' own cell-type colours.</p>
+      <p class="pv-sr-only" id="hx-alt">An interactive point cloud drawn from real cells, in four cases: a tissue section, a 3D volume, a tissue array of fourteen tissues on one slide, and one gene across several molecular layers. The section and the volume keep their datasets' own cell-type colours; the tissue array is coloured by the level of one gene, from low to high.</p>
       <p class="pv-sr-only" id="hx-keys">Drag to rotate, or use the arrow keys.</p>
       <div class="hx__tip" id="hx-tip" aria-hidden="true"><b><i></i><span></span></b></div>
     </section>
