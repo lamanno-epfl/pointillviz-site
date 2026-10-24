@@ -58,7 +58,8 @@
  *                               //   at a time in the background; { first: true } jumps the queue.
  *                               //   A state asked for by setState loads at once and stops a
  *                               //   background download, which starts again after it
- *   pc.loaded('3d'); pc.progress('3d');   // its particles are here; 0..1 while loading, else null
+ *   pc.loaded('3d'); pc.progress('3d');   // it can show (its particles, and an only-state's image
+ *                               //   are here); 0..1 while loading, else null
  *   pc.detailReady('tma');      // → Promise<boolean>: its full-detail image is on the GPU (false: none)
  *   pc.setDetail(false);        // hide the full-detail image (true lets it fade in again)
  *   pc.pause(); pc.resume();
@@ -92,15 +93,18 @@
  * and the budget), occluded through a core-only depth pre-pass (no hard edges), depth-cued in 3D,
  * and lifted by a quarter-resolution bloom. The camera blends on its own clock (camAnim), so a
  * new framing (a resize, a layout change) glides instead of jumping, with or without a morph.
- * The tissue array draws fewer cells than N (its manifest entry's drawn / drawnPhone): its other
- * particles take the palette's hidden entry (alpha 0, not pickable) and fade out as they arrive.
- * Its manifest entry also names a full-detail image of every cell (`detail`: WebP, straight RGBA
- * over the state's frame box). It is fetched when the state is asked for or prefetched, never with
- * the first load of another state; the engine takes the smallest file that covers the frame on
- * screen in device px (the smallest when the visitor saves data). It is drawn as a textured quad
- * in the particles' own world coordinates, so the camera's sway, a drag or a resize moves both
- * alike; once the particles land it fades in over them (0.7 s, at once under reduced motion), and
- * a morph that leaves fades it out (0.24 s) as the particles take over.
+ * A state may name a full-detail image of every cell (`detail`: WebP, straight RGBA over the state's
+ * frame box). It is fetched when the state is asked for, pointed at or prefetched, never with the
+ * first load of another state; the engine takes the smallest file that covers the frame on screen
+ * in device px (the smallest when the visitor saves data). It is drawn as a textured quad in the
+ * state's world coordinates, so the camera's sway, a drag or a resize moves it as it would move
+ * the particles. With `detail.only` (the tissue array) the state shows its image alone and its
+ * particles never draw: a switch into it fades the leaving particles out within the first quarter
+ * of a morph, still through the camera they were seen with and before they come near its layout,
+ * while the image fades in through its own camera (0.7 s, settling from 4 % further away); a switch
+ * out of it fades the image where it is (0.45 s) while the next state's particles, invisible at
+ * its positions, appear on their way. Until its image is on the GPU, loaded() is false (the page
+ * shows its loading state) and 'end' waits for the image to be half in. Reduced motion swaps at once.
  *
  * This file merges the homepage concepts' engine changes (2026-10-22): per-state frames
  * (concepts/home-a), the camera clock, setView, liftColors and plateAnchors (concepts/home-b),
@@ -111,6 +115,11 @@ const DEG = Math.PI / 180;
 const TAU = Math.PI * 2;
 // point diameter as a multiple of the state's mean spacing
 const SIZE_K = { section: 1.2, volume: 1.0, array: 1.0, plates: 1.16 };
+// a state that shows only its full-detail image (detail.only): its image fades in over DETAIL_IN s,
+// settling from DETAIL_SETTLE times the camera's distance; a switch into it fades the leaving
+// particles out in the first FADE_OUT of a morph's length; a switch out fades the image in
+// DETAIL_OUT s, held where it was, while the next state's particles appear on their way
+const DETAIL_IN = 0.7, DETAIL_OUT = 0.45, DETAIL_SETTLE = 1.04, FADE_OUT = 0.26;
 const LIFT = [0.030, 0.034, 0.060];   // the background lift's default tint
 
 // ── small math ─────────────────────────────────────────────────────────────
@@ -428,6 +437,14 @@ class Hero {
     this.detailMix = 0;             // 0..1: how far it has faded in over its particles
     this.detailOn = true;           // setDetail(false) hides it
     this._fading = false;
+    this.outCam = null;             // a switch into an only-state: the camera the leaving particles keep
+    this._viewOut = new Float32Array(16);
+    this._projOut = new Float32Array(16);
+    this.plateCam = null;           // a switch out of one: the camera its fading image keeps
+    this._vpPlate = new Float32Array(16);
+    this._viewPlate = new Float32Array(16);
+    this._projPlate = new Float32Array(16);
+    this._pendingEnd = null;        // { id, resolve }: 'end' once an only-state's image is half in
   }
 
   // ── setup ────────────────────────────────────────────────────────────────
@@ -471,9 +488,9 @@ class Hero {
     this._glInit();
     this._events();
 
+    this._wantDetail(first);       // with the particles, not after them
     await this._load(first);
     this._enter(first);
-    this._wantDetail(first);
     // the other states, in the background (or on prefetch() / when asked for)
     if (this.opts.preload !== 'first') this.prefetch();
     return this;
@@ -728,10 +745,15 @@ class Hero {
     return job.promise;
   }
 
-  // a state that is asked for brings its full-detail image too
+  // a state that is asked for brings its full-detail image too (→ its promise, or null)
   _wantDetail(id) {
-    if (this._hasDetail(id) && !this.details.has(id)) this._loadDetail(id, true).catch((e) => console.warn(e));
+    if (!this._hasDetail(id)) return null;
+    const p = this._loadDetail(id, true);
+    p.catch((e) => console.warn(e));
+    return p;
   }
+
+  _isOnly(st) { return !!(st && st.detail && st.detail.only && st.detail.files && st.detail.files.length); }
 
   _uploadDetails() {
     const gl = this.gl;
@@ -762,31 +784,69 @@ class Hero {
     }
   }
 
-  // the full-detail image of the state at rest fades in over its particles; a morph fades it out
-  // as soon as it starts, and the particles take over
+  // The full-detail image of the state at rest fades in; an only-state's image fades in from the
+  // start of the switch into it, settling with a slight scale, and once it is half in the switch
+  // ends ('end', so the page's names, key and scale arrive with it). A morph away fades it out
+  // while the next state's particles take over.
   _detailStep(dt) {
     const d = this.dst && this.dst.d;
     const det = d && this.details.get(d.st.id);
-    const want = !!(this.detailOn && det && det.tex && !this.morph);
+    const into = !!(this.morph && this.morph.into);
+    const want = !!(this.detailOn && det && det.tex && (!this.morph || into));
     if (want && (!this.plate || this.plate.d !== d)) {
       if (this.plate) this.detailMix = 0;
       this.plate = { d, det };
+    }
+    if (want && this.detailMix === 0 && this._isOnly(d.st) && !this.reduced) {
+      const rest = this._rest(d.st.id);
+      if (rest) this.camAnim = { from: { ...rest, dist: rest.dist * DETAIL_SETTLE }, start: performance.now(), dur: DETAIL_IN * 1000 };
     }
     const target = want ? 1 : 0;
     if (!this.plate) this.detailMix = 0;
     else if (this.reduced) this.detailMix = target;
     else if (this.detailMix !== target) {
-      const step = dt / (target ? 0.7 : 0.24);
+      const step = dt / (target ? DETAIL_IN : DETAIL_OUT);
       this.detailMix = target ? Math.min(1, this.detailMix + step) : Math.max(0, this.detailMix - step);
     }
-    if (this.detailMix <= 0) this.plate = null;
+    if (this.detailMix <= 0) { this.plate = null; this.plateCam = null; }
     this._fading = !!this.plate && this.detailMix !== target;
+    const pe = this._pendingEnd;
+    if (pe && d && pe.id === d.st.id && !this.morph && this.plate && this.plate.d === d
+        && this.detailMix >= (this.reduced ? 1 : 0.5)) {
+      this._pendingEnd = null;
+      this._emit(pe.id, 'end');
+      pe.resolve && pe.resolve(true);
+    }
+  }
+
+  // a switch into an only-state ends when its image shows (→ that promise)
+  _awaitImage(id) {
+    let resolve;
+    const promise = new Promise((r) => { resolve = r; });
+    this._pendingEnd = { id, resolve };
+    this._kick();
+    return promise;
+  }
+
+  // a morph's position progress: a switch into an only-state runs the particles at the pace of
+  // a whole morph while it lasts only for their fade-out
+  _mt() {
+    const M = this.morph;
+    if (!M) return 1;
+    return M.into ? M.t * (M.dur / M.span) : M.t;
+  }
+
+  // the leaving particles' opacity in a switch into an only-state (else 1)
+  _fadeOut() {
+    const M = this.morph;
+    return M && M.into ? 1 - smoothstep(0, 1, clamp(M.t, 0, 1)) : 1;
   }
 
   // the body as it arrives, so a slow network can show how far a state has come
   async _read(job, r) {
     const len = Number(r.headers.get('content-length')) || 0;
-    const total = job.st.bytes || (r.headers.get('content-encoding') ? 0 : len);
+    const total = (job.kind === 'detail' ? job.total : job.st.bytes) || (r.headers.get('content-encoding') ? 0 : len);
+    const sid = job.state || job.id;
     job.total = total;
     if (!total || !r.body || typeof r.body.getReader !== 'function') return r.arrayBuffer();
     const reader = r.body.getReader();
@@ -802,15 +862,16 @@ class Hero {
       buf.set(value, got);
       got += value.length;
       job.got = got;
-      this.opts.onProgress && this.opts.onProgress(job.id, Math.min(1, got / total));
+      this.opts.onProgress && this.opts.onProgress(sid, this.progress(sid));
     }
     return got === buf.length ? buf.buffer : buf.slice(0, got).buffer;
   }
 
   // a state asked for earlier and no longer wanted goes back to the background queue
   _demote(id) {
-    const job = this.loading.get(id);
-    if (job && job.urgent) { job.urgent = false; this._pump(); }
+    for (const job of [this.loading.get(id), this.loading.get(`${id}#detail`)]) {
+      if (job && job.urgent) { job.urgent = false; this._pump(); }
+    }
   }
 
   // palette → per-particle colour (straight RGBA), size factor, pickable
@@ -821,12 +882,14 @@ class Hero {
       return [c[0], c[1], c[2], e.alpha == null ? 1 : e.alpha, e.size == null ? 1 : e.size, e.pick !== false];
     });
     const col = new Uint8Array(N * 4), size = new Uint8Array(N), pick = new Uint8Array(N);
+    // an only-state's particles never draw (alpha 0): they are where a morph from it starts
+    const only = this._isOnly(st);
     for (let i = 0; i < N; i++) {
       const e = pal[raw.col[i]] || [0.5, 0.5, 0.5, 1, 1, false];
       col[i * 4] = Math.round(e[0] * 255); col[i * 4 + 1] = Math.round(e[1] * 255);
-      col[i * 4 + 2] = Math.round(e[2] * 255); col[i * 4 + 3] = Math.round(e[3] * 255);
+      col[i * 4 + 2] = Math.round(e[2] * 255); col[i * 4 + 3] = only ? 0 : Math.round(e[3] * 255);
       size[i] = Math.round(clamp(e[4], 0, 2) * 127.5);
-      pick[i] = e[5] ? 1 : 0;
+      pick[i] = e[5] && !only ? 1 : 0;
     }
     d.col = col; d.size = size; d.pick = pick;
     const r = st.render || {};
@@ -1005,6 +1068,28 @@ class Hero {
     this._cam = { ...c, yaw, pitch };
     this._lastCam = c;
     this._focal = (this.canvas.height / 2) / Math.tan(c.fov / 2);
+    // a switch into an only-state: the leaving particles keep the camera they were seen with
+    // (its sway runs on), while the image and everything placed on it take the new one; a switch
+    // out of one: its image keeps its camera while it fades, and the new particles take the new one
+    const held = (o, view, proj) => {
+      let oy = o.yaw, op = o.pitch;
+      if (idle) {
+        oy += o.swayYaw * Math.sin((TAU * t) / 26);
+        op += o.swayPitch * Math.sin((TAU * t) / 19 + 1.3);
+      }
+      op = clamp(op, 4 * DEG, 88.5 * DEG);
+      perspective(proj, o.fov, aspect, Math.max(0.02, o.dist * 0.08), o.dist * 12 + 10);
+      proj[8] -= o.sx; proj[9] -= o.sy;
+      viewOf(view, oy, op, o.dist, o.target);
+    };
+    if (this.outCam) {
+      held(this.outCam, this._viewOut, this._projOut);
+      this._focalOut = (this.canvas.height / 2) / Math.tan(this.outCam.fov / 2);
+    }
+    if (this.plateCam) {
+      held(this.plateCam, this._viewPlate, this._projPlate);
+      mul(this._vpPlate, this._projPlate, this._viewPlate);
+    }
   }
 
   // ── state changes ────────────────────────────────────────────────────────
@@ -1015,6 +1100,14 @@ class Hero {
     this._label();
     this.src = { kind: 'state', d, rp: d.rp };
     this.dst = { d, rp: d.rp };
+    // an only-state opens on its image alone, which fades in when it arrives
+    if (this._isOnly(d.st)) {
+      this.morph = null;
+      this._pendingEnd = { id, resolve: null };
+      this._readyPending = true;
+      this._kick();
+      return;
+    }
     const intro = this.opts.intro && !this.reduced;
     if (intro) {
       // the cells condense from a faint mist into the first state
@@ -1065,8 +1158,10 @@ class Hero {
     if (id === this.state && this.morph) return this.morph.promise || Promise.resolve(true);
     return this._load(id).then((d) => {
       if (this.destroyed || this._want !== id) return false;
-      this._wantDetail(id);
-      return this._go(d, instant || this.reduced);
+      const det = this._wantDetail(id);
+      const p = this._go(d, instant || this.reduced);
+      // an only-state has nothing to show without its image: a failed image fails the switch
+      return det && this._isOnly(d.st) ? Promise.all([p, det]).then(([ok]) => ok) : p;
     });
   }
 
@@ -1074,6 +1169,14 @@ class Hero {
     const id = d.st.id;
     if (!d.gpu) this._upload(d);
     const prevMorph = this.morph;
+    // the camera the particles are seen through now (with the visitor's orbit folded in, which
+    // then eases out): a switch into an only-state still draws them through the one they left with
+    let camFrom;
+    if (this.outCam) camFrom = { ...this.outCam };
+    else if (this._cam) {
+      camFrom = { ...this._camNow() };
+      camFrom.yaw += this._user[0]; camFrom.pitch += this._user[1];
+    } else camFrom = { ...this._rest(id) };
     // where every particle is now
     if (prevMorph) {
       this.snapLift = this._liftNow();
@@ -1083,10 +1186,13 @@ class Hero {
     } else {
       this.src = { kind: 'state', d: this.dst.d, rp: this.dst.d.rp };
     }
-    const camFrom = this._cam ? { ...this._camNow() } : this._rest(id);
-    // the user's orbit offsets fold into the camera's starting point and ease out
-    camFrom.yaw += this._user[0]; camFrom.pitch += this._user[1];
+    if (this._pendingEnd) { this._pendingEnd.resolve && this._pendingEnd.resolve(false); this._pendingEnd = null; }
+    const only = this._isOnly(d.st);
+    // leaving an only-state: its image fades where it is; coming back to one: it takes the camera
+    if (only) this.plateCam = null;
+    else if (this.plate && this._isOnly(this.plate.d.st) && !this.plateCam) this.plateCam = { ...camFrom };
     this._user = [0, 0]; this._vel = [0, 0];
+    this.outCam = null;
     this.dst = { d, rp: d.rp };
     this.state = id;
     this._label();
@@ -1096,14 +1202,24 @@ class Hero {
       this.morph = null;
       this.camAnim = null;
       this.src = { kind: 'state', d, rp: d.rp };
+      if (only) return this._awaitImage(id);        // 'end' once its image shows
       this._emit(id, 'end');
       this._kick();
       return Promise.resolve(true);
     }
     let resolve;
     const promise = new Promise((r) => { resolve = r; });
-    this.morph = { t: 0, start: performance.now(), dur: this.opts.duration, resolve, promise };
-    this.camAnim = { from: camFrom, start: this.morph.start, dur: this.opts.duration };
+    const start = performance.now();
+    if (only) {
+      // The particles leave through the camera they were seen with and are gone before they could
+      // read as this state's layout; its image comes in through its own camera (_detailStep).
+      this.outCam = camFrom;
+      this.morph = { t: 0, start, dur: this.opts.duration * FADE_OUT, span: this.opts.duration, into: true, resolve, promise };
+      this.camAnim = null;
+    } else {
+      this.morph = { t: 0, start, dur: this.opts.duration, resolve, promise };
+      this.camAnim = { from: camFrom, start, dur: this.opts.duration };
+    }
     this._sweep(this.src);
     this._kick();
     return promise;
@@ -1124,7 +1240,7 @@ class Hero {
   }
 
   _rpNow() {
-    const a = this.src.rp, b = this.dst.rp, e = this.morph ? easeInOut(clamp(this.morph.t, 0, 1)) : 1;
+    const a = this.src.rp, b = this.dst.rp, e = this.morph ? easeInOut(clamp(this._mt(), 0, 1)) : 1;
     return {
       size: lerp(a.size, b.size, e), alpha: lerp(a.alpha, b.alpha, e), add: lerp(a.add, b.add, e),
       soft: lerp(a.soft, b.soft, e), fog: lerp(a.fog, b.fog, e), glow: lerp(a.glow, b.glow, e),
@@ -1149,7 +1265,7 @@ class Hero {
 
   // CPU copy of the vertex shader: where each particle is at the current progress
   _snapshot() {
-    const N = this.N, T = this.morph.t;
+    const N = this.N, T = this._mt(), fade = this._fadeOut();
     const srcP = this.src.kind === 'snap' ? this.snapPos : this.src.d.world;
     const srcC = this.src.kind === 'snap' ? this.snapCol : this.src.d.col;
     const srcS = this.src.kind === 'snap' ? this.snapSize : this.src.d.size;
@@ -1176,6 +1292,7 @@ class Hero {
       pos[i3 + 2] = lerp(az, bz, e) + arc * noise * Math.sin(qy * 1.3 + qx * 2.1);
       const k = smoothstep(0.15, 0.85, e);
       for (let j = 0; j < 4; j++) col[i4 + j] = Math.round(lerp(srcC[i4 + j], dstC[i4 + j], k));
+      col[i4 + 3] = Math.round(col[i4 + 3] * fade);   // a switch into an only-state: as faded as they are
       const sz0 = (srcS[i] / 127.5) * b0, sz1 = (dstS[i] / 127.5) * b1;
       size[i] = Math.round(clamp((lerp(sz0, sz1, e) * (1 + 0.3 * arc)) / bNew, 0, 2) * 127.5);
     }
@@ -1236,8 +1353,14 @@ class Hero {
       // settle: the target state becomes the source of the next morph
       this.src = { kind: 'state', d: this.dst.d, rp: this.dst.d.rp };
       if (this._pendingLayout) { this._pendingLayout = false; this._relayout(); }
-      this._emit(this.state, 'end');
-      finished.resolve && finished.resolve(true);
+      if (finished.into) {
+        // the leaving particles are gone; the switch ends once the image shows (_detailStep)
+        this.outCam = null;
+        this._pendingEnd = { id: this.state, resolve: finished.resolve };
+      } else {
+        this._emit(this.state, 'end');
+        finished.resolve && finished.resolve(true);
+      }
     }
     if (this._hoverReq) this._pick();
     if (this._readyPending) {
@@ -1259,11 +1382,14 @@ class Hero {
 
   _render() {
     const gl = this.gl, fb = this.fb, N = this.budget;
-    const M = this.morph, T = M ? clamp(M.t, 0, 1) : 1;
+    const M = this.morph, T = M ? clamp(this._mt(), 0, 1) : 1;
     const rp = this._rpNow();
-    // the full-detail image over the particles: they fade as it comes in, and stop drawing under it
+    // the full-detail image over the particles: they fade as it comes in, and stop drawing under
+    // it; an only-state's own particles never draw, and the ones leaving for it fade out first
     const pm = this.plate ? smoothstep(0, 1, this.detailMix) : 0;
-    const drawPts = pm < 0.999;
+    const fade = this._fadeOut();
+    const drawPts = pm < 0.999 && fade > 0.001 && !(!M && this._isOnly(this.dst.d.st));
+    const out = !!(this.outCam && M && M.into);
     const srcBuf = this.src.kind === 'snap' ? this.snapGpu : this.src.d.gpu;
     const dstBuf = this.dst.d.gpu;
     if (!this.sweepDir) this._sweep(this.src);
@@ -1290,8 +1416,8 @@ class Hero {
     bind(5, dstBuf.size, 1, gl.UNSIGNED_BYTE, true);
 
     const u = this.prog.u, c = this._cam, dpr = this.dpr;
-    gl.uniformMatrix4fv(u.uView, false, this._view);
-    gl.uniformMatrix4fv(u.uProj, false, this._proj);
+    gl.uniformMatrix4fv(u.uView, false, out ? this._viewOut : this._view);
+    gl.uniformMatrix4fv(u.uProj, false, out ? this._projOut : this._proj);
     gl.uniform1f(u.uT, T);
     gl.uniform1f(u.uSpread, this.spread);
     gl.uniform3fv(u.uSweepDir, this.sweepDir);
@@ -1299,13 +1425,13 @@ class Hero {
     gl.uniform1f(u.uNoise, M ? this.noise : 0);
     gl.uniform1f(u.uLift, M ? this.lift : 0);
     gl.uniform2f(u.uBase, this._baseOf(this.src), this._baseOf(this.dst));
-    gl.uniform1f(u.uFocal, this._focal);
+    gl.uniform1f(u.uFocal, out ? this._focalOut : this._focal);
     gl.uniform1f(u.uMinPx, 1.15 * dpr);
     gl.uniform1f(u.uMaxPx, Math.min(this.maxPoint, 48 * dpr));
-    gl.uniform1f(u.uAlpha, rp.alpha * (1 - pm));
+    gl.uniform1f(u.uAlpha, rp.alpha * (1 - pm) * fade);
     gl.uniform1f(u.uFog, rp.fog);
-    const r = this._radius();
-    gl.uniform2f(u.uFogRange, c.dist - r * 0.55, c.dist + r * 0.85);
+    const r = this._radius(), fd = out ? this.outCam.dist : c.dist;
+    gl.uniform2f(u.uFogRange, fd - r * 0.55, fd + r * 0.85);
     gl.uniform1f(u.uOverlay, 0.05);
     gl.uniform1f(u.uSoft, rp.soft);
     gl.uniform1f(u.uAdd, rp.add);
@@ -1347,7 +1473,7 @@ class Hero {
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, this.plate.det.tex);
       const pu = this.progPlate.u;
-      gl.uniformMatrix4fv(pu.uVP, false, this._vp);
+      gl.uniformMatrix4fv(pu.uVP, false, this.plateCam ? this._vpPlate : this._vp);
       gl.uniform4f(pu.uBox, (bx[0] - 0.5) * W * s, (bx[1] - 0.5) * H * s, (bx[2] - 0.5) * W * s, (bx[3] - 0.5) * H * s);
       gl.uniform1f(pu.uAlpha, pm);
       gl.uniform1i(pu.uTex, 0);
@@ -1409,7 +1535,7 @@ class Hero {
       const b = s.d.bounds;
       return Math.max(b[3] - b[0], b[4] - b[1], b[5] - b[2]) * 0.5 || 1;
     };
-    const e = this.morph ? easeInOut(clamp(this.morph.t, 0, 1)) : 1;
+    const e = this.morph ? easeInOut(clamp(this._mt(), 0, 1)) : 1;
     return lerp(of(this.src), of(this.dst), e);
   }
 
@@ -1730,12 +1856,29 @@ class Hero {
     }));
   }
 
-  // true when a state's particles are here; progress(id): 0..1 while it loads, else null
-  loaded(id) { return this.data.has(id); }
+  // true when a state can show: its particles are here, and an only-state's image is on the GPU;
+  // progress(id): 0..1 while it loads (particles and image by their bytes), else null
+  loaded(id) {
+    if (!this.data.has(id)) return false;
+    const st = this.states && this.states.find((s) => s.id === id);
+    if (this.fallback || !this._isOnly(st)) return true;
+    const det = this.details.get(id);
+    return !!(det && det.tex);
+  }
   progress(id) {
-    if (this.data.has(id)) return 1;
-    const job = this.loading.get(id);
-    return job ? (job.total ? Math.min(1, job.got / job.total) : 0) : null;
+    if (this.loaded(id)) return 1;
+    const st = this.states && this.states.find((s) => s.id === id);
+    if (!st) return null;
+    const job = this.loading.get(id), binTotal = st.bytes || 1;
+    let got = this.data.has(id) ? binTotal : job ? job.got : 0, total = binTotal, active = this.data.has(id) || !!job;
+    if (this._isOnly(st)) {
+      const dj = this.loading.get(`${id}#detail`), det = this.details.get(id);
+      const dTotal = (dj && dj.total) || st.detail.files[0].bytes || 1;
+      got += det ? dTotal : dj ? dj.got : 0;
+      total += dTotal;
+      active = active || !!dj || !!det;
+    }
+    return active ? Math.min(1, got / total) : null;
   }
 
   umPerPixel() {
@@ -1758,7 +1901,7 @@ class Hero {
   _liftNow() {
     if (!this.src || !this.dst) return LIFT;
     const a = this._liftOf(this.src), b = this._liftOf(this.dst);
-    const e = this.morph ? easeInOut(clamp(this.morph.t, 0, 1)) : 1;
+    const e = this.morph ? easeInOut(clamp(this._mt(), 0, 1)) : 1;
     return [lerp(a[0], b[0], e), lerp(a[1], b[1], e), lerp(a[2], b[2], e)];
   }
 
@@ -1801,7 +1944,7 @@ class Hero {
     this._wantFrame = frame ? [frame, fs] : null;
     return this._load(id).then((d) => {
       if (this.destroyed || this._want !== id) return false;
-      this._wantDetail(id);
+      const det = this._wantDetail(id);
       const p = this._go(d, quick);
       const w = this._wantFrame;
       if (w && this._frameKey(w[0], w[1]) !== this._frameKey(this.opts.frame, this.opts.frames)) {
@@ -1811,7 +1954,8 @@ class Hero {
         this._fitKey = `${this.cssW}x${this.cssH}:${this._frameKey(w[0], w[1])}:${this.budget}`;
         for (const dd of this.data.values()) dd.cam = null;
       }
-      return p;
+      // an only-state has nothing to show without its image: a failed image fails the switch
+      return det && this._isOnly(d.st) ? Promise.all([p, det]).then(([ok]) => ok) : p;
     });
   }
 

@@ -644,8 +644,13 @@ async function initHero() {
       onState: (id, phase) => {
         if (!pc) return;
         pc._settling = phase === 'start';
-        if (phase === 'start') { showTip(null); clearBusy(); }
-        else if (!formed) afterIntro();
+        // a switch starts once a case's particles are here; the tissue array also waits for its
+        // image, so its loading line stays until the switch ends
+        if (phase === 'start') { showTip(null); if (pc.loaded(id)) clearBusy(); }
+        else {
+          if (id === open) clearBusy();
+          if (!formed) afterIntro();
+        }
       },
       onProgress,
       onHover: showTip,
@@ -657,6 +662,9 @@ async function initHero() {
     return;
   }
   window.__home = { pc, choose, geometry, place, tour, open: () => open };   // for the page's own checks
+  // a case the address opened that cannot show yet (the tissue array's image): its loading line,
+  // and its names, key and scale wait for it ('end')
+  if (DATA.has(first) && !pc.fallback && !pc.loaded(first)) { pc._settling = true; setBusy(first); }
   showHint();
   initMotion();
   initTour();
