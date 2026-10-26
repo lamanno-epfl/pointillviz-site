@@ -276,12 +276,12 @@ body { overflow-x: clip; }
   height: 100%;
   padding: var(--hx-title-top) var(--hx-pad) 12px;
 }
+/* the open case's title is set in the same face as the column labels (.hx__name), only larger */
 .hx__ttl {
   flex: none;
   margin: 0 0 6px;
-  font: 600 var(--hx-title-size) / 1 var(--pv-font-serif);
-  font-variation-settings: "opsz" 96;
-  letter-spacing: -0.02em;
+  font: 600 var(--hx-title-size) / 1.05 var(--pv-font-sans);
+  letter-spacing: -0.01em;
   color: var(--hx-ink);
   white-space: nowrap;
 }
