@@ -30,7 +30,9 @@
         head.appendChild(el);
         return el;
       };
-      add('link', { rel: 'icon', href: 'assets/pv/favicon.svg', type: 'image/svg+xml' });
+      add('link', { rel: 'icon', href: 'favicon.ico', sizes: '32x32' });
+      add('link', { rel: 'icon', href: 'assets/pv/favicon.svg?v=2', type: 'image/svg+xml' });
+      add('link', { rel: 'apple-touch-icon', href: 'apple-touch-icon.png' });
       add('link', { rel: 'stylesheet', href: 'assets/pv/pv.css' });
       add('script', { src: 'assets/pv/pv.js' }).async = false;
       if (!root) return;
