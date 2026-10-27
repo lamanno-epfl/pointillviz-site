@@ -893,7 +893,7 @@ html:not(.js) .hx__stillbox { left: 12px; right: 12px; top: var(--hx-head-px); b
 /* Without script the cases cannot switch and the tabs cannot change: show what can. */
 html:not(.js) .hx__tabs { pointer-events: none; }
 html:not(.js) .hx__strip,
-html:not(.js) .ex__rail-nav,
+html:not(.js) .ex__store-head,
 html:not(.js) .wk__tabs,
 html:not(.js) .sx__step,
 html:not(.js) .hx__focus { display: none; }
@@ -1254,10 +1254,9 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
   .ex__parts { gap: 8px 12px; }
 }
 
-/* the 12 tools: a rail of one row on phones and tablets, a shelf of two rows on wide windows */
+/* the tools: a rail of one row on phones and tablets, a shelf of two rows on wide windows */
 .ex__store { display: grid; gap: 10px; min-width: 0; }
-.ex__store-head { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; min-height: 34px; }
-.ex__store-head .pv-label { color: var(--pv-text); white-space: nowrap; }
+.ex__store-head { display: flex; align-items: center; justify-content: flex-end; gap: 8px 16px; min-height: 34px; }
 .ex__rail-nav { display: flex; gap: 6px; }
 .ex__rail-btn {
   position: relative;
@@ -1528,8 +1527,6 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
   text-wrap: balance;
 }
 .ex__ex-note { font-size: 0.8125rem; line-height: 1.45; color: var(--pv-text-2); }
-.ex__handles { font-size: 0.875rem; color: var(--pv-text); }
-.ex__h { font: 600 0.8125rem / 1 var(--pv-font-mono); color: var(--pv-text); }
 .ex__ex-pic { display: grid; gap: 7px; min-width: 0; }
 .ex__ex-media { position: relative; overflow: hidden; border-radius: 10px; background: #000; aspect-ratio: 880 / 663; }
 .ex__ex-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
