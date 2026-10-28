@@ -1546,27 +1546,50 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
 /* the agent's closing sentence, after its own label, as Fig. 2d prints it */
 .ex__ex-find { padding-top: 9px; border-top: 1px solid var(--pv-line); font-size: 0.9375rem; line-height: 1.4; color: var(--pv-text); }
 .ex__ex-find b { margin-right: 0.3em; font-weight: 600; color: var(--pv-accent); }
+.ex__ex-res { display: grid; gap: 12px 16px; }
 .ex__ex-pic { display: grid; gap: 7px; min-width: 0; }
 .ex__ex-media { position: relative; overflow: hidden; border-radius: 10px; background: #000; aspect-ratio: 880 / 663; }
 .ex__ex-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ex__ex-cap { font: 400 0.6875rem / 1.4 var(--pv-font-mono); letter-spacing: 0.03em; color: var(--pv-text-3); }
+.ex__ex-cap sub { font-size: 0.8em; line-height: 0; }
+/* Fig. 2d's two bar plots, cell types over genes: one scale, log2 of the selection over the
+   rest (the longest bar, Il22ra2 at 9.31, fills the track), in the figure's colours */
+.ex__ex-plot { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 7px; min-width: 0; }
+.ex__bars {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  align-self: center;
+  gap: 3px 8px;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  color: var(--pv-text-2);
+}
+.ex__bars > :not(.ex__bar) { justify-self: end; white-space: nowrap; }
+.ex__bars .is-gene { font-style: italic; }
+/* each plot's title, over its bars */
+.ex__bars > .ex__bars-ttl { grid-column: 2; justify-self: start; font-weight: 600; color: var(--pv-text); }
+.ex__bars > .is-next { margin-top: 8px; }
+.ex__bars sup { font-size: 0.75em; line-height: 0; }
+.ex__bar { width: calc(var(--v) / 9.31 * 100%); height: 7px; border-radius: 1.5px; background: var(--c, #43C7F0); }
 .ex__caveat { font-size: 0.8125rem; color: var(--pv-text-3); }
-@media (min-width: 560px) and (max-width: 1079.98px) {
-  .ex__example { grid-template-columns: minmax(0, 1fr) minmax(0, 0.86fr); align-items: center; }
+/* the bars on the map's right wherever the card is wide enough for both; on phones, under it */
+@media (min-width: 560px) {
+  .ex__ex-res { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
 }
 @media (max-width: 559.98px) {
   .ex__ex-media { aspect-ratio: auto; height: clamp(108px, 30vw, 136px); }
   .ex__ex-media img { object-position: 50% 44%; }
 }
-/* Two columns: the deck's columns end together. The example's picture is at least 2.05 : 1
+/* Two columns: the deck's columns end together. The example's map is at least 1.15 : 1
    (the ::before holds that height) and grows into whatever the other column leaves, so
    neither column ends in an empty band, at any width. */
 @media (min-width: 1080px) {
   .ex__ai .ex__example { flex: 1 1 auto; grid-template-rows: auto minmax(0, 1fr); }
   .ex__ex-pic { grid-template-rows: minmax(0, 1fr) auto; }
   .ex__ex-media { aspect-ratio: auto; }
-  .ex__ex-media::before { content: ""; display: block; padding-top: calc(100% / 2.05); }
-  .ex__ex-media img { object-position: 50% 36%; }
+  .ex__ex-media::before { content: ""; display: block; padding-top: calc(100% / 1.15); }
+  .ex__ex-media img { object-position: 58% 36%; }
 }
 
 /* ═══════════════════════════ 4 · How to cite ════════════════════════════

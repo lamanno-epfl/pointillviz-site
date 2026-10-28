@@ -468,14 +468,33 @@ fdr        <span class="tk-t">bool</span>    <span class="tk-n">true</span></cod
 
           <figure class="ex__example">
             <div class="ex__ex-text">
-              <figcaption class="pv-label">Example</figcaption>
+              <figcaption class="pv-label">Example · own analysis</figcaption>
               <blockquote class="ex__quote"><p>“What is the structure I selected, and which cell types and genes set it apart…”</p></blockquote>
               <p class="ex__ex-note">Your selection travels with every message.</p>
               <p class="ex__ex-find"><b>Finding</b> “your selection is a cryptopatch or early isolated lymphoid follicle…”</p>
             </div>
-            <div class="ex__ex-pic">
-              <div class="ex__ex-media"><img src="assets/media/ai-result.webp" width="880" height="663" loading="lazy" decoding="async" alt="One field of the colon section, each cell filled by its count of Il22ra2, the gene the agent ranked first, brighter where the count is higher and grey where the gene is not detected, under the cyan outline of the selected cells"></div>
-              <p class="ex__ex-cap">Own analysis · top gene <i translate="no">Il22ra2</i></p>
+            <div class="ex__ex-res">
+              <div class="ex__ex-pic">
+                <div class="ex__ex-media"><img src="assets/media/ai-result.webp" width="880" height="663" loading="lazy" decoding="async" alt="One field of the colon section, each cell filled by its count of Il22ra2, the gene the agent ranked first, brighter where the count is higher and grey where the gene is not detected, under the cyan outline of the selected cells"></div>
+                <p class="ex__ex-cap"><i translate="no">Il22ra2</i>, its top gene</p>
+              </div>
+              <!-- Fig. 2d's bars: the four cell types and the four genes the agent named, each a bar as long as
+                   log2 of the selection over the rest (cell types, share of the cells; genes, the app's fold change) -->
+              <div class="ex__ex-plot">
+                <div class="ex__bars" role="img" translate="no" aria-label="Two bar plots of the log2 ratio of the selection to the rest of the tissue. Cell types: CIA-DCs 7.1, cycling T/ILCs 6.7, ILC3s 6.2, Pla2g2d+ macrophages 5.5. Genes: Il22ra2 9.3, Cxcl13 6.9, Ltb 6.5, Cd74 6.3.">
+                  <span class="ex__bars-ttl">Cell Types</span>
+                  <span>CIA-DCs</span><span class="ex__bar" style="--v:7.148;--c:#3BDC93"></span>
+                  <span>Cycling T/ILCs</span><span class="ex__bar" style="--v:6.658;--c:#76DC3B"></span>
+                  <span>ILC3s</span><span class="ex__bar" style="--v:6.187;--c:#3BDCCD"></span>
+                  <span>Pla2g2d<sup>+</sup> MACS</span><span class="ex__bar" style="--v:5.507;--c:#59DC3B"></span>
+                  <span class="ex__bars-ttl is-next">Genes</span>
+                  <span class="is-gene">Il22ra2</span><span class="ex__bar" style="--v:9.309"></span>
+                  <span class="is-gene">Cxcl13</span><span class="ex__bar" style="--v:6.938"></span>
+                  <span class="is-gene">Ltb</span><span class="ex__bar" style="--v:6.483"></span>
+                  <span class="is-gene">Cd74</span><span class="ex__bar" style="--v:6.273"></span>
+                </div>
+                <p class="ex__ex-cap">log<sub>2</sub> selection / rest</p>
+              </div>
             </div>
           </figure>
           <p class="ex__caveat">Answers are model output; the notebook shows what ran.</p>
