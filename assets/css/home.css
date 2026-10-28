@@ -1490,6 +1490,7 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
   .ex__card { gap: 16px; }
   .ex__example { padding: 14px; gap: 12px; }
   .ex__quote p { font-size: 1.125rem; }
+  .ex__ex-find { font-size: 0.875rem; }
 }
 /* the ring beside the assistant's heading and the four groups under both, wherever the
    groups beside the ring would be too narrow for Steer's Off / Ask / Allow switch: phones,
@@ -1542,6 +1543,9 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
   text-wrap: balance;
 }
 .ex__ex-note { font-size: 0.8125rem; line-height: 1.45; color: var(--pv-text-2); }
+/* the agent's closing sentence, after its own label, as Fig. 2d prints it */
+.ex__ex-find { padding-top: 9px; border-top: 1px solid var(--pv-line); font-size: 0.9375rem; line-height: 1.4; color: var(--pv-text); }
+.ex__ex-find b { margin-right: 0.3em; font-weight: 600; color: var(--pv-accent); }
 .ex__ex-pic { display: grid; gap: 7px; min-width: 0; }
 .ex__ex-media { position: relative; overflow: hidden; border-radius: 10px; background: #000; aspect-ratio: 880 / 663; }
 .ex__ex-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -1552,7 +1556,7 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
 }
 @media (max-width: 559.98px) {
   .ex__ex-media { aspect-ratio: auto; height: clamp(108px, 30vw, 136px); }
-  .ex__ex-media img { object-position: 50% 58%; }
+  .ex__ex-media img { object-position: 50% 44%; }
 }
 /* Two columns: the deck's columns end together. The example's picture is at least 2.05 : 1
    (the ::before holds that height) and grows into whatever the other column leaves, so
@@ -1562,7 +1566,7 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
   .ex__ex-pic { grid-template-rows: minmax(0, 1fr) auto; }
   .ex__ex-media { aspect-ratio: auto; }
   .ex__ex-media::before { content: ""; display: block; padding-top: calc(100% / 2.05); }
-  .ex__ex-media img { object-position: 50% 56%; }
+  .ex__ex-media img { object-position: 50% 36%; }
 }
 
 /* ═══════════════════════════ 4 · How to cite ════════════════════════════
