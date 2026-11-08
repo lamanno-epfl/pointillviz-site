@@ -941,7 +941,7 @@ function initRing() {
   const ring = $('.ex__ring');
   if (!ring) return;
   const rows = $$('.ex__group');
-  const GROUP = { see: 'See', do: 'Do', steer: 'Steer', show: 'Show' };
+  const GROUP = { see: 'Inspect', do: 'Analyse', steer: 'Navigate', show: 'Report' };
   const COLOR = { see: '#5B8CFF', do: '#FF8A3D', steer: '#A77BFF', show: '#6FE0BD' };
   const focusGroup = (g) => {
     if (g) ring.dataset.focus = g; else delete ring.dataset.focus;

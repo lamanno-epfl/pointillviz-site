@@ -632,7 +632,8 @@ html:not(.js) .hx__stillbox { left: 12px; right: 12px; top: var(--hx-head-px); b
   12% { opacity: 1; transform: scale(1.06); }
 }
 .hx-ai__groups { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
-.hx-ai__groups li { display: grid; grid-template-columns: 3.4rem minmax(0, 1fr); align-items: baseline; gap: 8px; font-size: 0.8125rem; line-height: 1.3; color: rgba(255, 240, 232, 0.86); }
+/* the label column in em: it holds the dot and "Navigate", the longest name, at either size */
+.hx-ai__groups li { display: grid; grid-template-columns: 5.6em minmax(0, 1fr); align-items: baseline; gap: 8px; font-size: 0.8125rem; line-height: 1.3; color: rgba(255, 240, 232, 0.86); }
 .hx-ai__groups b { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; color: #FFF6EE; }
 .hx-ai__groups b::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--g); box-shadow: 0 0 8px var(--g); }
 .hx-ai__result { grid-area: pic; display: grid; align-content: start; gap: 6px; margin: 0; }
@@ -816,7 +817,7 @@ html:not(.js) .hx__stillbox { left: 12px; right: 12px; top: var(--hx-head-px); b
   .hx-ai__ask { padding: 13px 16px 14px; font-size: 1.0625rem; line-height: 1.38; }
   .hx-ai__who { font-size: 0.75rem; }
   .hx-ai__orb { padding: 9px; }
-  .hx-ai__groups li { font-size: 0.9375rem; grid-template-columns: 3.9rem minmax(0, 1fr); }
+  .hx-ai__groups li { font-size: 0.9375rem; }
   .hx-ai__groups { gap: 8px; }
   .hx-store { margin-top: 20px; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 12px; }
   .hx-store__name { padding: 6px 10px 7px; font-size: clamp(0.6875rem, 0.25rem + 0.62 * var(--dvw), 0.8125rem); letter-spacing: -0.005em; line-height: 1.2; }
@@ -892,7 +893,7 @@ html:not(.js) .hx__stillbox { left: 12px; right: 12px; top: var(--hx-head-px); b
   .hx-ai__chips li { padding: 4px 9px; font-size: 0.6875rem; }
 }
 @container hx-ai ((max-width: 759.98px) or (max-height: 499.98px)) and (min-width: 600px) and (min-height: 440px) {
-  .hx-ai__groups li { grid-template-columns: 3.6rem minmax(0, 1fr); }
+  .hx-ai__groups li { grid-template-columns: 5.6em minmax(0, 1fr); }
   .hx-ai__groups li span { display: inline; }
   .hx-ai__ask { font-size: 0.9375rem; }
   .hx-ai__runs p { display: block; }
@@ -1513,7 +1514,7 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
   .ex__ex-find { font-size: 0.875rem; }
 }
 /* the ring beside the assistant's heading and the four groups under both, wherever groups at
-   the ring's corners would be too narrow for Steer's Off / Ask / Allow switch: small tablets
+   the ring's corners would be too narrow for Navigate's Off / Ask / Allow switch: small tablets
    and the narrowest two-column windows. On phones the ring sits above the groups. */
 @media (min-width: 520px) and (max-width: 639.98px), (min-width: 1080px) and (max-width: 1249.98px) {
   .ex__ai { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; }
@@ -1531,7 +1532,7 @@ html:not(.js) .wk__panel[hidden] { display: grid !important; margin-top: 14px; }
 @media (max-width: 399.98px) {
   .ex__card { padding-inline: 16px; }
 }
-/* a tighter switch where Steer's card is at its narrowest: small phones, and the two-column
+/* a tighter switch where Navigate's card is at its narrowest: small phones, and the two-column
    windows just wide enough for the groups beside the ring */
 @media (max-width: 399.98px), (min-width: 1250px) and (max-width: 1359.98px) {
   .ex__switch { letter-spacing: 0.04em; }
