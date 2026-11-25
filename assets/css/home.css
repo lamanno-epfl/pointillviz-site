@@ -104,6 +104,10 @@ body { overflow-x: clip; }
 .hx__tagline {
   display: block;
   margin-top: clamp(10px, 1.4vh, 16px);
+  /* The P of the wordmark starts 4.84 / 617.7 of the logo's width in (logo.svg's
+     viewBox); the same share of the same width, less the S's own side bearing,
+     starts the line's ink under the P's. */
+  margin-left: calc(min(100%, clamp(18rem, 9rem + 34vw, 52rem)) * 0.007836 - 0.08em);
   font: 500 var(--pv-text-xs) / 1 var(--pv-font-mono);
   font-variation-settings: normal;
   letter-spacing: var(--pv-track-label);
