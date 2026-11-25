@@ -100,6 +100,17 @@ body { overflow-x: clip; }
    on screen; home.js). Its width follows the intro column, never wider than it. */
 .hx__title--logo { align-self: start; margin-top: clamp(12px, 3vh, 30px); line-height: 0; white-space: normal; }
 .hx__logo { display: block; width: min(100%, clamp(18rem, 9rem + 34vw, 52rem)); height: auto; }
+/* Under the wordmark, in the top bar's label type (mono caps, tracked). */
+.hx__tagline {
+  display: block;
+  margin-top: clamp(10px, 1.4vh, 16px);
+  font: 500 var(--pv-text-xs) / 1 var(--pv-font-mono);
+  font-variation-settings: normal;
+  letter-spacing: var(--pv-track-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--pv-text-2);
+}
 .pv-topbar__brand { transition: opacity 240ms ease, visibility 0s linear 0s; }
 .pv-topbar.is-hero-brand .pv-topbar__brand { opacity: 0; visibility: hidden; transition: opacity 240ms ease, visibility 0s linear 240ms; }
 @media (prefers-reduced-motion: reduce) {
