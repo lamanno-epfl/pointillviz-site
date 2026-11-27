@@ -952,59 +952,75 @@ function initTools() {
   ends();
 }
 
-function initRing() {
-  const ring = $('.ex__ring');
-  if (!ring) return;
-  const rows = $$('.ex__group');
-  const GROUP = { see: 'Inspect', do: 'Analyse', steer: 'Navigate', show: 'Report' };
-  const COLOR = { see: '#5B8CFF', do: '#FF8A3D', steer: '#A77BFF', show: '#6FE0BD' };
-  const focusGroup = (g) => {
-    if (g) ring.dataset.focus = g; else delete ring.dataset.focus;
-    rows.forEach((li) => li.classList.toggle('is-on', li.dataset.g === g));
-  };
-  rows.forEach((li) => {
-    li.addEventListener('pointerenter', () => focusGroup(li.dataset.g));
-    li.addEventListener('pointerleave', () => { if (!picked) focusGroup(null); });
+/* The assistant as Fig. 2d draws it: a row of dots from each group's picture to the orb, drawn for
+ * the layout in place, and a group's tools listed over the middle once a mouse points at its
+ * picture, until the mouse leaves the hub or points at another. A press (tap, click, Enter) keeps the list open until a second press, a press outside
+ * or Escape; keyboard focus opens it too. */
+function initHub() {
+  const hub = $('.ex__hub');
+  if (!hub) return;
+  const inner = $('.ex__hub-in', hub);
+  const svg = $('.ex__links', hub);
+  const orb = $('.ex__orb', hub);
+  const lenses = $$('.ex__lens', hub);
+  const COLOR = { see: '#5B8CFF', do: '#FF8A3D', steer: '#C77DFF', show: '#6FE0BD' };
+  const lines = new Map();
+  lenses.forEach((l) => {
+    const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    ln.setAttribute('stroke', COLOR[l.dataset.g]);
+    svg.appendChild(ln);
+    lines.set(l, ln);
   });
-  // each point is one MCP tool, a button: point at it, tap it or focus it
-  const pick = $('.ex__ring-pick', ring);
-  const pts = $$('.ex__pt', ring);
-  let picked = null;
-  const show = (pt) => {
-    if (picked) picked.classList.remove('is-pick');
-    picked = pt;
-    if (!pt) { delete ring.dataset.pick; focusGroup(null); return; }
-    const g = pt.dataset.g;
-    pt.classList.add('is-pick');
-    ring.dataset.pick = '';
-    pick.style.setProperty('--g', COLOR[g]);
-    pick.querySelector('i').textContent = GROUP[g];
-    pick.querySelector('code').textContent = pt.textContent.replace(/_/g, '_​');   // breaks at the underscores
-    focusGroup(g);
+  // from a picture's rim to the orb's sphere of dots (82% of its box, as in the figure), clear of both
+  const draw = () => {
+    if (getComputedStyle(svg).display === 'none') return;
+    const box = inner.getBoundingClientRect();
+    const o = orb.getBoundingClientRect();
+    const oc = [o.left + o.width / 2 - box.left, o.top + o.height / 2 - box.top];
+    const or = o.width * 0.41 + 9;
+    lines.forEach((ln, l) => {
+      const p = $('.ex__lens-pic', l).getBoundingClientRect();
+      const c = [p.left + p.width / 2 - box.left, p.top + p.height / 2 - box.top];
+      const r = p.width / 2 + 9;
+      const d = Math.hypot(oc[0] - c[0], oc[1] - c[1]);
+      const u = [(oc[0] - c[0]) / d, (oc[1] - c[1]) / d];
+      const k = d > r + or + 8 ? 1 : 0;                  // no room: no dots
+      ln.setAttribute('x1', (c[0] + u[0] * r).toFixed(1));
+      ln.setAttribute('y1', (c[1] + u[1] * r).toFixed(1));
+      ln.setAttribute('x2', (c[0] + u[0] * (r + k * (d - r - or))).toFixed(1));
+      ln.setAttribute('y2', (c[1] + u[1] * (r + k * (d - r - or))).toFixed(1));
+    });
   };
-  pts.forEach((pt, i) => {
-    pt.setAttribute('aria-label', `${pt.textContent} (${GROUP[pt.dataset.g]})`);
-    pt.tabIndex = i === 0 ? 0 : -1;
-    pt.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') show(pt); });
-    pt.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && document.activeElement !== pt) show(null); });
-    // a tap focuses the point before its click: decide from the state before the press
-    let down = null;
-    pt.addEventListener('pointerdown', () => { down = { was: picked === pt, at: performance.now() }; });
-    pt.addEventListener('click', () => {
-      const fromPointer = down && performance.now() - down.at < 1500;
-      show(fromPointer && down.was ? null : pt);
-      down = null;
+  if ('ResizeObserver' in window) new ResizeObserver(draw).observe(inner);
+  addEventListener('load', draw);
+  draw();
+
+  let pinned = null;
+  const open = (g) => {
+    if (g) hub.dataset.open = g; else delete hub.dataset.open;
+    lenses.forEach((l) => {
+      l.setAttribute('aria-expanded', String(l.dataset.g === g));
+      lines.get(l).classList.toggle('is-on', l.dataset.g === g);
     });
-    pt.addEventListener('focus', () => { pts.forEach((o) => { o.tabIndex = o === pt ? 0 : -1; }); show(pt); });
-    pt.addEventListener('blur', () => { if (picked === pt) show(null); });
-    pt.addEventListener('keydown', (e) => {
-      const n = pts.length;
-      const to = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: n - 1 }[e.key];
-      if (to === undefined) return;
-      e.preventDefault();
-      pts[(to + n) % n].focus();
+  };
+  lenses.forEach((l) => {
+    const g = l.dataset.g;
+    l.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') open(g); });
+    // a press focuses the picture before its click: decide from the state before the press
+    let was = null;
+    l.addEventListener('pointerdown', () => { was = pinned === g; });
+    l.addEventListener('click', () => {
+      pinned = (was === null ? pinned === g : was) ? null : g;
+      was = null;
+      open(pinned || (document.activeElement === l && l.matches(':focus-visible') ? g : null));
     });
+    l.addEventListener('focus', () => open(g));
+    l.addEventListener('blur', () => open(pinned));
   });
+  // the list stays while the pointer is anywhere on the hub (on its list, or while the card widens under it)
+  inner.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && !inner.contains(document.activeElement)) open(pinned); });
+  hub.addEventListener('keydown', (e) => { if (e.key === 'Escape' && hub.dataset.open) { pinned = null; open(null); } });
+  document.addEventListener('pointerdown', (e) => { if (pinned && !hub.contains(e.target)) { pinned = null; open(null); } });
 }
 
 /* ───────────────────────────── 5 · section index, entrances ─────────────── */
@@ -1050,19 +1066,14 @@ function initIndex() {
  * without script, in a full-page capture, and under reduced motion. */
 function initReveals() {
   if (reduced() || !('IntersectionObserver' in window)) return;
-  const items = [...$$('[data-reveal]'), $('.ex__ring')].filter(Boolean);
+  const items = $$('[data-reveal]');
   const io = new IntersectionObserver((entries) => {
     entries.forEach((e) => {
       if (!e.isIntersecting) return;
       io.unobserve(e.target);
       const el = e.target;
-      if (el.classList.contains('ex__ring')) {
-        el.classList.add('is-lit');
-        setTimeout(() => el.classList.add('is-done'), 1400);
-      } else {
-        el.classList.add('is-in');
-        setTimeout(() => el.classList.remove('is-armed', 'is-in'), 1600);   // back to plain
-      }
+      el.classList.add('is-in');
+      setTimeout(() => el.classList.remove('is-armed', 'is-in'), 1600);   // back to plain
     });
   }, { rootMargin: '0px 0px -10% 0px', threshold: 0.08 });
   const arm = () => {
@@ -1070,7 +1081,7 @@ function initReveals() {
     items.forEach((el) => {
       if (el.getBoundingClientRect().top < vh) return;   // in view or above: leave it alone
       if (el.matches('[data-reveal="stagger"]')) [...el.children].forEach((c, i) => c.style.setProperty('--i', Math.min(i, 6)));
-      el.classList.add(el.classList.contains('ex__ring') ? 'is-armed-ring' : 'is-armed');
+      el.classList.add('is-armed');
       io.observe(el);
     });
   };
@@ -1114,7 +1125,7 @@ initImages();
 initTabs();
 initTileKeys();
 initTools();
-initRing();
+initHub();
 initIndex();
 initReveals();
 initAddress();
