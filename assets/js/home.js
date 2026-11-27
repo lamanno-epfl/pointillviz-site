@@ -821,34 +821,48 @@ function initClips() {
   reduceMQ.addEventListener('change', () => vids.forEach(update));
 }
 
-/* The Images tile: the H&E alone, then the cells turned on over it, held, and off again. Its
- * two pictures are frames of one camera, so the fade equals the app ramping its cell opacity.
- * It runs while the tile is on screen in the open tab, starts again from the image each time
- * the tile comes back, and has a pause button like the clips. Under reduced motion it stays
- * the final still (home.css) until the visitor presses play. */
-const HE_MS = 7200;
-const HE_KEYS = [
-  { opacity: 0, offset: 0 },
-  { opacity: 0, offset: 0.2, easing: EASE },                               // 1.4 s the image alone
-  { opacity: 1, offset: 0.3 },                                             // 0.7 s the cells turn on
-  { opacity: 1, offset: 0.875, easing: 'cubic-bezier(0.45, 0, 0.55, 1)' }, // 4.1 s held
-  { opacity: 0, offset: 1 },                                               // 0.9 s off again
+/* The Images tile: the H&E alone, then the fluorescence stains mixed over it, then the cells'
+ * filled outlines on top, held, and back to the H&E. Its three pictures are frames of one
+ * camera, so each fade equals the app switching its image layer or ramping its cell opacity.
+ * The two upper frames run on one clock. It runs while the tile is on screen in the open tab,
+ * starts again from the H&E each time the tile comes back, and has a pause button like the
+ * clips. Under reduced motion it stays the final still (home.css) until the visitor presses
+ * play. */
+const HE_MS = 9600;
+const HE_AT = (ms) => ms / HE_MS;
+const HE_HOLD = 'cubic-bezier(0.45, 0, 0.55, 1)';
+const HE_LAYERS = [
+  ['.wk-he__if', [
+    { opacity: 0, offset: 0 },
+    { opacity: 0, offset: HE_AT(1400), easing: EASE },     // 1.4 s the H&E alone
+    { opacity: 1, offset: HE_AT(2100) },                   // 0.7 s the stains come in
+    { opacity: 1, offset: HE_AT(8700), easing: HE_HOLD },  // held, under the cells from 3.9 s
+    { opacity: 0, offset: 1 },                             // 0.9 s back to the H&E
+  ]],
+  ['.wk-he__cells', [
+    { opacity: 0, offset: 0 },
+    { opacity: 0, offset: HE_AT(3900), easing: EASE },     // 1.8 s the stains alone
+    { opacity: 1, offset: HE_AT(4600) },                   // 0.7 s the cells turn on
+    { opacity: 1, offset: HE_AT(8700), easing: HE_HOLD },  // 4.1 s held
+    { opacity: 0, offset: 1 },                             // 0.9 s off with the stains
+  ]],
 ];
 function initImages() {
   const box = $('.wk-he');
-  const top = box && $('.wk-he__cells', box);
-  if (!top) return;
-  if (!top.animate || !('IntersectionObserver' in window)) { box.classList.add('wk-he--still'); return; }
+  const layers = box ? HE_LAYERS.map(([sel, keys]) => [$(sel, box), keys]).filter(([el]) => el) : [];
+  if (!layers.length) return;
+  if (!layers[0][0].animate || !('IntersectionObserver' in window)) { box.classList.add('wk-he--still'); return; }
   const imgs = $$('img', box);
   const b = $('.wk-play', box);
   const panel = box.closest('[role="tabpanel"]');
   const s = { seen: false, fresh: true, user: null };
-  let anim = null;
+  let anims = null;
 
   const ready = () => imgs.every((i) => i.complete && i.naturalWidth > 0);
+  const running = () => !!anims && anims[0].playState === 'running';
   const label = () => {
     if (!b) return;
-    const on = !!anim && anim.playState === 'running';
+    const on = running();
     b.dataset.state = on ? 'playing' : 'paused';
     b.setAttribute('aria-label', on ? 'Pause the animation' : 'Play the animation');
   };
@@ -856,12 +870,13 @@ function initImages() {
     const shown = !panel || !panel.hidden;
     const auto = s.user === null ? !reduced() : s.user;
     if (s.seen && shown && auto && !document.hidden && ready()) {
-      if (!anim) anim = top.animate(HE_KEYS, { duration: HE_MS, iterations: Infinity });
-      if (s.fresh) { anim.currentTime = 0; s.fresh = false; }
-      anim.play();
-    } else if (anim) {
-      if (!auto && s.user === null) { anim.cancel(); anim = null; s.fresh = true; }   // the final still
-      else anim.pause();
+      if (!anims) anims = layers.map(([el, keys]) => el.animate(keys, { duration: HE_MS, iterations: Infinity }));
+      const t = s.fresh ? 0 : anims[0].currentTime;      // one clock: the frames never drift apart
+      s.fresh = false;
+      anims.forEach((a) => { a.currentTime = t; a.play(); });
+    } else if (anims) {
+      if (!auto && s.user === null) { anims.forEach((a) => a.cancel()); anims = null; s.fresh = true; }   // the final still
+      else anims.forEach((a) => a.pause());
     }
     label();
   };
@@ -875,7 +890,7 @@ function initImages() {
   if (b) {
     b.hidden = false;
     b.addEventListener('click', () => {
-      s.user = !(anim && anim.playState === 'running');  // a press is the visitor's choice, kept
+      s.user = !running();                               // a press is the visitor's choice, kept
       if (s.user) s.seen = true;
       update();
     });

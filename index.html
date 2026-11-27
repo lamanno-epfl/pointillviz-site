@@ -272,9 +272,11 @@
         <!-- Data -->
         <div class="pv-tabs__panel wk__panel" role="tabpanel" id="wk-p-data" aria-labelledby="wk-t-data" data-reveal="stagger">
           <figure class="wk-tile wk-tile--big">
-            <!-- the H&E alone, then the cells turned on over it: two frames of one camera (home.js, 3) -->
+            <!-- the H&E alone, then its four fluorescence stains mixed, then the cells' filled outlines on top:
+                 three frames of one camera (home.js, 3) -->
             <div class="wk-tile__media wk-he">
-              <img src="assets/media/data-images-he-1040.webp" srcset="assets/media/data-images-he-1040.webp 1040w, assets/media/data-images-he-1600.webp 1600w" sizes="(min-width: 1000px) 49vw, 92vw" width="1040" height="800" loading="lazy" decoding="async" alt="The H&amp;E image of a mouse colon section, then each cell’s outline turned on over it, coloured by cell type">
+              <img src="assets/media/data-images-he-1040.webp" srcset="assets/media/data-images-he-1040.webp 1040w, assets/media/data-images-he-1600.webp 1600w" sizes="(min-width: 1000px) 49vw, 92vw" width="1040" height="800" loading="lazy" decoding="async" alt="The H&amp;E image of a mouse colon section, then the same field as four fluorescence stains mixed in colour, then each cell’s outline filled over them, coloured by cell type">
+              <img class="wk-he__if" src="assets/media/data-images-if-1040.webp" srcset="assets/media/data-images-if-1040.webp 1040w, assets/media/data-images-if-1600.webp 1600w" sizes="(min-width: 1000px) 49vw, 92vw" width="1040" height="800" loading="lazy" decoding="async" alt="">
               <img class="wk-he__cells" src="assets/media/data-images-cells-1040.webp" srcset="assets/media/data-images-cells-1040.webp 1040w, assets/media/data-images-cells-1600.webp 1600w" sizes="(min-width: 1000px) 49vw, 92vw" width="1040" height="800" loading="lazy" decoding="async" alt="">
               <button class="wk-play" type="button" aria-label="Pause the animation" hidden></button>
             </div>
@@ -285,8 +287,8 @@
             <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Multi-omics</strong> RNA, ATAC, histone marks and protein.</span></figcaption>
           </figure>
           <figure class="wk-tile">
-            <div class="wk-tile__media"><img src="assets/media/data-cells.webp" width="620" height="383" loading="lazy" decoding="async" alt="One field of a mouse colon section drawn as points, each cell coloured by its type"></div>
-            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Cells</strong> From an <span translate="no">.h5ad</span>, coloured by type.</span></figcaption>
+            <div class="wk-tile__media"><img src="assets/media/data-genes.webp" width="760" height="469" loading="lazy" decoding="async" alt="One field of a mouse colon section drawn as each cell’s filled outline, coloured by three genes at once: Cd74 in red, Epcam in green and Acta2 in blue"></div>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Expression</strong> Three genes in one map.</span></figcaption>
           </figure>
           <figure class="wk-tile">
             <div class="wk-tile__media"><img src="assets/media/data-molecules.webp" width="760" height="469" loading="lazy" decoding="async" alt="Molecules of three genes as green, pink and cyan spots over the cells of a mouse tissue microarray"></div>
@@ -314,7 +316,7 @@
           </figure>
           <figure class="wk-tile">
             <div class="wk-tile__media"><img src="assets/media/views-embedding.webp" width="620" height="383" loading="lazy" decoding="async" alt="The UMAP embedding of the section, coloured by cell type"></div>
-            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Embedding</strong> UMAP, brushed with the tissue.</span></figcaption>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Embedding</strong> Live update with tissue.</span></figcaption>
           </figure>
         </div>
 
@@ -334,11 +336,11 @@
           </figure>
           <figure class="wk-tile wk-tile--fig">
             <div class="wk-tile__media"><img src="assets/media/ana-moran.webp" width="760" height="447" loading="lazy" decoding="async" alt="Moran’s I of the five highest-ranked genes, Krt20 first, beside a map of the section with the cells of Krt20’s high–high class in red"></div>
-            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Spatial statistics</strong> Moran’s I, with <span class="nw">closed-form</span> nulls.</span></figcaption>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Spatial statistics</strong> Optimised and exportable spatial metrics.</span></figcaption>
           </figure>
           <figure class="wk-tile wk-tile--fig wk-tile--panel">
             <div class="wk-tile__media"><img src="assets/media/ana-lr.webp" width="760" height="463" loading="lazy" decoding="async" alt="The Cell Communication map of Cxcl13 → Cxcr5 on the colon section, in Magma: Cxcr5 cells with Cxcl13 cells around them light up in a lymphoid aggregate"></div>
-            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Cell Communication</strong> Runs <span translate="no">LIANA+</span>, optimised to be 20× faster.</span></figcaption>
+            <figcaption class="wk-tile__cap"><span class="wk-tile__text"><strong>Cell Communication</strong> <span translate="no">LIANA+</span> with same controls, ~20× faster, memory efficient.</span></figcaption>
           </figure>
         </div>
       </div>
